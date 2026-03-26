@@ -1,0 +1,61 @@
+export const EXPERTISE_AREAS = [
+  { id: "it", nameAr: "تقنية المعلومات", nameEn: "Information Technology" },
+  { id: "cybersecurity", nameAr: "الأمن السيبراني", nameEn: "Cybersecurity" },
+  { id: "digital_transformation", nameAr: "التحول الرقمي", nameEn: "Digital Transformation" },
+  { id: "hr", nameAr: "الموارد البشرية", nameEn: "Human Resources" },
+  { id: "talent_development", nameAr: "تطوير المواهب", nameEn: "Talent Development" },
+  { id: "performance_management", nameAr: "إدارة الأداء", nameEn: "Performance Management" },
+  { id: "finance", nameAr: "المالية", nameEn: "Finance" },
+  { id: "budget_management", nameAr: "إدارة الميزانيات", nameEn: "Budget Management" },
+  { id: "marketing", nameAr: "التسويق", nameEn: "Marketing" },
+  { id: "corporate_communication", nameAr: "التواصل المؤسسي", nameEn: "Corporate Communication" },
+  { id: "operations", nameAr: "العمليات", nameEn: "Operations" },
+  { id: "project_management", nameAr: "إدارة المشاريع", nameEn: "Project Management" },
+  { id: "legal", nameAr: "القانونية", nameEn: "Legal" },
+  { id: "governance", nameAr: "الحوكمة", nameEn: "Governance" },
+  { id: "strategy", nameAr: "الاستراتيجية", nameEn: "Strategy" },
+  { id: "strategic_planning", nameAr: "التخطيط الاستراتيجي", nameEn: "Strategic Planning" },
+  { id: "change_management", nameAr: "إدارة التغيير", nameEn: "Change Management" },
+  { id: "business_development", nameAr: "تطوير الأعمال", nameEn: "Business Development" },
+  { id: "customer_service", nameAr: "خدمة العملاء", nameEn: "Customer Service" },
+  { id: "risk_management", nameAr: "إدارة المخاطر", nameEn: "Risk Management" },
+];
+
+export const SKILLS = [
+  { id: "leadership", nameAr: "قيادة الفرق", nameEn: "Team Leadership" },
+  { id: "data_analysis", nameAr: "تحليل البيانات", nameEn: "Data Analysis" },
+  { id: "project_management", nameAr: "إدارة المشاريع", nameEn: "Project Management" },
+  { id: "strategic_planning", nameAr: "التخطيط الاستراتيجي", nameEn: "Strategic Planning" },
+  { id: "change_management", nameAr: "إدارة التغيير", nameEn: "Change Management" },
+  { id: "business_development", nameAr: "تطوير الأعمال", nameEn: "Business Development" },
+  { id: "communication", nameAr: "مهارات التواصل", nameEn: "Communication Skills" },
+  { id: "negotiation", nameAr: "التفاوض", nameEn: "Negotiation" },
+  { id: "problem_solving", nameAr: "حل المشكلات", nameEn: "Problem Solving" },
+  { id: "policy_development", nameAr: "تطوير السياسات", nameEn: "Policy Development" },
+  { id: "performance_management", nameAr: "إدارة الأداء", nameEn: "Performance Management" },
+  { id: "risk_management", nameAr: "إدارة المخاطر", nameEn: "Risk Management" },
+  { id: "budget_management", nameAr: "إدارة الميزانيات", nameEn: "Budget Management" },
+  { id: "digital_transformation", nameAr: "التحول الرقمي", nameEn: "Digital Transformation" },
+  { id: "cybersecurity", nameAr: "الأمن السيبراني", nameEn: "Cybersecurity" },
+];
+
+export const DEPARTMENTS = [
+  { id: "it", nameAr: "تقنية المعلومات", nameEn: "Information Technology" },
+  { id: "hr", nameAr: "الموارد البشرية", nameEn: "Human Resources" },
+  { id: "finance", nameAr: "المالية", nameEn: "Finance" },
+  { id: "marketing", nameAr: "التسويق والاتصال", nameEn: "Marketing & Communications" },
+  { id: "operations", nameAr: "العمليات", nameEn: "Operations" },
+  { id: "legal", nameAr: "الشؤون القانونية", nameEn: "Legal Affairs" },
+  { id: "strategy", nameAr: "التخطيط والاستراتيجية", nameEn: "Strategy & Planning" },
+  { id: "customer_service", nameAr: "خدمة العملاء", nameEn: "Customer Service" },
+];
+
+export const WEEKDAYS = [
+  { id: "sunday", nameAr: "الأحد", nameEn: "Sunday" },
+  { id: "monday", nameAr: "الاثنين", nameEn: "Monday" },
+  { id: "tuesday", nameAr: "الثلاثاء", nameEn: "Tuesday" },
+  { id: "wednesday", nameAr: "الأربعاء", nameEn: "Wednesday" },
+  { id: "thursday", nameAr: "الخميس", nameEn: "Thursday" },
+  { id: "friday", nameAr: "الجمعة", nameEn: "Friday" },
+  { id: "saturday", nameAr: "السبت", nameEn: "Saturday" },
+];
