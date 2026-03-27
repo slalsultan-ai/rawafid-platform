@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/server/auth";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { UserSwitcher } from "@/components/dev/user-switcher";
 
 export default async function DashboardLayout({
   children,
@@ -34,6 +35,7 @@ export default async function DashboardLayout({
         <Header locale={locale} userName={user.name ?? user.email} userRole={user.role} />
         <main className="flex-1 p-6">{children}</main>
       </div>
+      <UserSwitcher />
     </div>
   );
 }
