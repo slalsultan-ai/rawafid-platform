@@ -14,6 +14,7 @@ import {
   Settings,
   Waves,
   Shield,
+  CalendarDays,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -44,6 +45,11 @@ export function Sidebar({ locale, userRole }: SidebarProps) {
       href: `/${locale}/mentoring`,
       icon: BookOpen,
       label: t("mentoring"),
+    },
+    {
+      href: `/${locale}/sessions`,
+      icon: CalendarDays,
+      label: t("sessions"),
     },
     {
       href: `/${locale}/profile`,

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getInitials } from "@/lib/utils";
 import Link from "next/link";
-import { Plus, Target, BookOpen, Video, MapPin, MonitorSmartphone } from "lucide-react";
+import { Plus, Target, BookOpen, Video, MapPin, MonitorSmartphone, CalendarPlus } from "lucide-react";
 
 const statusColors: Record<string, "default" | "success" | "warning" | "destructive" | "secondary" | "outline"> = {
   proposed: "warning",
@@ -196,6 +196,16 @@ export default async function MentoringPage({ params }: { params: Promise<{ loca
                           </div>
                         )}
                       </div>
+                    )}
+
+                    {/* Schedule session button for active matches */}
+                    {match.status === "active" && (
+                      <Link href={`/${locale}/sessions/new?matchId=${match.id}`} className="block pt-1">
+                        <Button size="sm" variant="outline" className="w-full gap-1.5 border-teal-200 text-teal-700 hover:bg-teal-50">
+                          <CalendarPlus className="w-3.5 h-3.5" />
+                          {isRTL ? "جدولة جلسة" : "Schedule Session"}
+                        </Button>
+                      </Link>
                     )}
 
                     {/* Accept / Reject */}
