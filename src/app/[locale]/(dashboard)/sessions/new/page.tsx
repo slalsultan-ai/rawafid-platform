@@ -2,7 +2,7 @@ import { auth } from "@/server/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/server/db";
 import { matches, users } from "@/server/db/schema";
-import { eq, and, or } from "drizzle-orm";
+import { eq, and, or, inArray } from "drizzle-orm";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { ArrowRight, CalendarPlus } from "lucide-react";
@@ -24,19 +24,11 @@ export default async function NewSessionPage({
   const user = session.user as { id: string; role: string; tenantId: string };
   const isRTL = locale === "ar";
 
-  // Get active matches for this user (must be active to schedule sessions)
+  // Get active matches for this user
   const activeMatches = db
     ? await db
-        .select({ match: matches, other: users })
+        .select()
         .from(matches)
-        .innerJoin(
-          users,
-          eq(
-            users.id,
-            // We'll fetch both mentor and mentee, filter in JS
-            matches.menteeId
-          )
-        )
         .where(
           and(
             or(eq(matches.mentorId, user.id), eq(matches.menteeId, user.id)),
@@ -46,22 +38,26 @@ export default async function NewSessionPage({
         )
     : [];
 
-  // Build match options with the "other person" resolved
-  const matchOptions: { id: string; otherPersonName: string; otherPersonTitle: string | null }[] = [];
+  // Batch fetch the "other person" for each match
+  const otherUserIds = activeMatches.map((m) =>
+    m.mentorId === user.id ? m.menteeId : m.mentorId
+  );
 
-  for (const row of activeMatches) {
-    const otherId = row.match.mentorId === user.id ? row.match.menteeId : row.match.mentorId;
-    if (db) {
-      const [otherUser] = await db.select().from(users).where(eq(users.id, otherId));
-      if (otherUser) {
-        matchOptions.push({
-          id: row.match.id,
-          otherPersonName: otherUser.name,
-          otherPersonTitle: otherUser.jobTitle,
-        });
-      }
-    }
-  }
+  const otherUsers =
+    otherUserIds.length > 0 && db
+      ? await db.select().from(users).where(inArray(users.id, otherUserIds))
+      : [];
+
+  const userMap = Object.fromEntries(otherUsers.map((u) => [u.id, u]));
+
+  const matchOptions = activeMatches
+    .map((m) => {
+      const otherId = m.mentorId === user.id ? m.menteeId : m.mentorId;
+      const other = userMap[otherId];
+      if (!other) return null;
+      return { id: m.id, otherPersonName: other.name, otherPersonTitle: other.jobTitle };
+    })
+    .filter((m): m is NonNullable<typeof m> => m !== null);
 
   return (
     <div className="max-w-xl mx-auto space-y-6">

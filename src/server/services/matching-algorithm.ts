@@ -57,7 +57,7 @@ export interface MentorProfileData {
   totalRatings?: number;
 }
 
-function calculateDomainScore(mentee: MenteeRequestData, mentor: MentorProfileData): number {
+export function calculateDomainScore(mentee: MenteeRequestData, mentor: MentorProfileData): number {
   const desiredArea = mentee.desiredArea.toLowerCase().trim();
   const mentorAreas = mentor.areasOfExpertise.map(a => ({
     ar: a.nameAr.toLowerCase().trim(),
@@ -81,7 +81,7 @@ function calculateDomainScore(mentee: MenteeRequestData, mentor: MentorProfileDa
   return hasPartialMatch ? 50 : 0;
 }
 
-function calculateSkillsScore(mentee: MenteeRequestData, mentor: MentorProfileData): number {
+export function calculateSkillsScore(mentee: MenteeRequestData, mentor: MentorProfileData): number {
   if (!mentee.desiredSkills.length) return 50; // neutral if no specific skills requested
 
   const mentorSkillIds = new Set(
@@ -95,7 +95,7 @@ function calculateSkillsScore(mentee: MenteeRequestData, mentor: MentorProfileDa
   return Math.round((matchedCount / mentee.desiredSkills.length) * 100);
 }
 
-function calculateExperienceScore(mentee: MenteeRequestData, mentor: MentorProfileData): number {
+export function calculateExperienceScore(mentee: MenteeRequestData, mentor: MentorProfileData): number {
   const gap = mentor.yearsOfExperience - mentee.yearsOfExperience;
 
   // Mentor must have more experience
@@ -113,12 +113,12 @@ function calculateExperienceScore(mentee: MenteeRequestData, mentor: MentorProfi
   return 60; // very senior mentor still valuable
 }
 
-function timeToMinutes(time: string): number {
+export function timeToMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
   return h * 60 + (m || 0);
 }
 
-function calculateAvailabilityScore(mentee: MenteeRequestData, mentor: MentorProfileData): number {
+export function calculateAvailabilityScore(mentee: MenteeRequestData, mentor: MentorProfileData): number {
   if (!mentee.availability?.length) return 70; // neutral if mentee has no preference
 
   let overlapScore = 0;
@@ -147,7 +147,7 @@ function calculateAvailabilityScore(mentee: MenteeRequestData, mentor: MentorPro
   return Math.round((overlapScore / totalSlots) * 100);
 }
 
-function calculateRatingScore(mentor: MentorProfileData): number {
+export function calculateRatingScore(mentor: MentorProfileData): number {
   // New mentors get a neutral score of 70
   if (!mentor.totalRatings || mentor.totalRatings === 0) return 70;
   if (!mentor.averageRating) return 70;

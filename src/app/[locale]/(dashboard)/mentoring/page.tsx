@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getInitials } from "@/lib/utils";
 import Link from "next/link";
 import { Plus, Target, BookOpen, Video, MapPin, MonitorSmartphone, CalendarPlus } from "lucide-react";
+import { MatchActions } from "@/components/mentoring/match-actions";
 
 const statusColors: Record<string, "default" | "success" | "warning" | "destructive" | "secondary" | "outline"> = {
   proposed: "warning",
@@ -210,14 +211,7 @@ export default async function MentoringPage({ params }: { params: Promise<{ loca
 
                     {/* Accept / Reject */}
                     {match.status === "proposed" && (
-                      <div className="flex gap-2 pt-1">
-                        <Button size="sm" variant="outline" className="flex-1 text-red-600 border-red-200 hover:bg-red-50">
-                          {isRTL ? "رفض" : "Reject"}
-                        </Button>
-                        <Button size="sm" className="flex-1">
-                          {isRTL ? "قبول" : "Accept"}
-                        </Button>
-                      </div>
+                      <MatchActions matchId={match.id} isRTL={isRTL} />
                     )}
                   </CardContent>
                 </Card>
