@@ -35,7 +35,7 @@ export default async function DashboardLayout({
         <Header locale={locale} userName={user.name ?? user.email} userRole={user.role} />
         <main className="flex-1 p-6">{children}</main>
       </div>
-      <UserSwitcher />
+      {["org_admin", "super_admin"].includes(user.role) && <UserSwitcher />}
     </div>
   );
 }
