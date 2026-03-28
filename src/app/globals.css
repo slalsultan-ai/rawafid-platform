@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-primary: #0891b2;
-  --color-primary-dark: #0e7490;
-  --color-secondary: #059669;
-  --color-secondary-dark: #047857;
+  --color-primary: #0f2837;
+  --color-primary-dark: #0a1f2e;
+  --color-secondary: #c4963a;
+  --color-secondary-dark: #a67c2a;
   --font-arabic: var(--font-arabic);
   --font-inter: var(--font-inter);
 }

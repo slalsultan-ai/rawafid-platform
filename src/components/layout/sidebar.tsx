@@ -12,10 +12,23 @@ import {
   User,
   BarChart3,
   Settings,
-  Waves,
   Shield,
   CalendarDays,
 } from "lucide-react";
+
+function StarLogo({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M24 4L27.5 14.5L38 11L31 20L41 24L31 28L38 37L27.5 33.5L24 44L20.5 33.5L10 37L17 28L7 24L17 20L10 11L20.5 14.5L24 4Z"
+        fill="currentColor"
+        fillOpacity="0.9"
+      />
+      <circle cx="24" cy="24" r="6" fill="white" fillOpacity="0.95" />
+      <circle cx="24" cy="24" r="3" fill="currentColor" />
+    </svg>
+  );
+}
 
 interface SidebarProps {
   locale: string;
@@ -96,8 +109,8 @@ export function Sidebar({ locale, userRole }: SidebarProps) {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-100">
-        <div className="flex items-center justify-center w-9 h-9 bg-teal-600 rounded-lg">
-          <Waves className="w-5 h-5 text-white" />
+        <div className="flex items-center justify-center w-9 h-9 bg-amber-500 rounded-lg">
+          <StarLogo className="w-5 h-5 text-[#0f2837]" />
         </div>
         <span className="font-bold text-slate-900 text-lg">روافد</span>
       </div>
@@ -111,7 +124,7 @@ export function Sidebar({ locale, userRole }: SidebarProps) {
             className={cn(
               "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
               isActive(item.href, item.exact)
-                ? "bg-teal-50 text-teal-700"
+                ? "bg-amber-50 text-[#0f2837]"
                 : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             )}
           >
@@ -134,7 +147,7 @@ export function Sidebar({ locale, userRole }: SidebarProps) {
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                   isActive(item.href, item.exact)
-                    ? "bg-teal-50 text-teal-700"
+                    ? "bg-amber-50 text-[#0f2837]"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 )}
               >

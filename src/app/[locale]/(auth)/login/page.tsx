@@ -5,7 +5,21 @@ import { signIn } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Waves } from "lucide-react";
+import { Loader2 } from "lucide-react";
+
+function StarLogo({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M24 4L27.5 14.5L38 11L31 20L41 24L31 28L38 37L27.5 33.5L24 44L20.5 33.5L10 37L17 28L7 24L17 20L10 11L20.5 14.5L24 4Z"
+        fill="currentColor"
+        fillOpacity="0.9"
+      />
+      <circle cx="24" cy="24" r="6" fill="white" fillOpacity="0.95" />
+      <circle cx="24" cy="24" r="3" fill="currentColor" />
+    </svg>
+  );
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -68,12 +82,12 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-emerald-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#0f2837]/5 via-white to-amber-50/40 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-teal-600 rounded-2xl mb-4 shadow-lg">
-            <Waves className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#0f2837] rounded-2xl mb-4 shadow-lg">
+            <StarLogo className="w-8 h-8 text-amber-400" />
           </div>
           <h1 className="text-3xl font-bold text-slate-900">{t.welcome}</h1>
           <p className="text-slate-500 mt-1">{t.subtitle}</p>
@@ -121,7 +135,7 @@ export default function LoginPage() {
         <div className="text-center mt-4">
           <button
             onClick={() => router.push(`/${locale === "ar" ? "en" : "ar"}/login`)}
-            className="text-sm text-slate-500 hover:text-teal-600 transition-colors"
+            className="text-sm text-slate-500 hover:text-amber-600 transition-colors"
           >
             {locale === "ar" ? "English" : "العربية"}
           </button>
