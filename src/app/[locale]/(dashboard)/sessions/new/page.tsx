@@ -1,5 +1,6 @@
 import { auth } from "@/server/auth";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { db } from "@/server/db";
 import { matches, users } from "@/server/db/schema";
 import { eq, and, or, inArray } from "drizzle-orm";
@@ -24,7 +25,9 @@ export default async function NewSessionPage({
   const user = session.user as { id: string; role: string; tenantId: string };
   const isRTL = locale === "ar";
 
-  // Get active matches for this user
+  const t = await getTranslations("session");
+  const tMatch = await getTranslations("match");
+
   const activeMatches = db
     ? await db
         .select()
@@ -38,7 +41,6 @@ export default async function NewSessionPage({
         )
     : [];
 
-  // Batch fetch the "other person" for each match
   const otherUserIds = activeMatches.map((m) =>
     m.mentorId === user.id ? m.menteeId : m.mentorId
   );
@@ -55,19 +57,22 @@ export default async function NewSessionPage({
       const otherId = m.mentorId === user.id ? m.menteeId : m.mentorId;
       const other = userMap[otherId];
       if (!other) return null;
-      return { id: m.id, otherPersonName: other.name, otherPersonTitle: other.jobTitle };
+      return {
+        id: m.id,
+        otherPersonName: other.name,
+        otherPersonTitle: other.jobTitle,
+      };
     })
     .filter((m): m is NonNullable<typeof m> => m !== null);
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
-      {/* Back */}
       <Link
         href={`/${locale}/sessions`}
         className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-teal-600 transition-colors"
       >
         <ArrowRight className={`w-4 h-4 ${isRTL ? "" : "rotate-180"}`} />
-        {isRTL ? "الجلسات" : "Back to Sessions"}
+        {t("back")}
       </Link>
 
       <Card>
@@ -77,31 +82,24 @@ export default async function NewSessionPage({
               <CalendarPlus className="w-5 h-5 text-teal-600" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-slate-900">
-                {isRTL ? "جدولة جلسة جديدة" : "Schedule New Session"}
-              </h1>
-              <p className="text-sm text-slate-500">
-                {isRTL ? "حدد موعد الجلسة وتفاصيلها" : "Set the session date, time, and details"}
-              </p>
+              <h1 className="text-lg font-bold text-slate-900">{t("schedule")}</h1>
             </div>
           </div>
 
           {matchOptions.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-slate-500 text-sm mb-3">
-                {isRTL
-                  ? "لا توجد علاقات إرشاد نشطة. يجب قبول طلب إرشاد أولاً قبل جدولة جلسة."
-                  : "No active mentoring relationships. A mentoring request must be accepted before scheduling."}
-              </p>
-              <Link href={`/${locale}/mentoring`} className="text-teal-600 text-sm hover:underline">
-                {isRTL ? "عرض طلبات الإرشاد" : "View Mentoring Requests"}
+              <p className="text-slate-500 text-sm mb-3">{tMatch("noRelationships")}</p>
+              <Link
+                href={`/${locale}/mentoring`}
+                className="text-teal-600 text-sm hover:underline"
+              >
+                {tMatch("myRelationships")}
               </Link>
             </div>
           ) : (
             <ScheduleForm
               matches={matchOptions}
               locale={locale}
-              isRTL={isRTL}
               preselectedMatchId={preselectedMatchId}
             />
           )}

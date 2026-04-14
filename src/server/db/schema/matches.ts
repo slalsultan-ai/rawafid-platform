@@ -2,11 +2,12 @@ import { pgTable, text, timestamp, real, pgEnum } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { tenants } from "./tenants";
 import { menteeRequests } from "./mentee-requests";
+import { nanoid } from "nanoid";
 
 export const matchStatusEnum = pgEnum("match_status", ["proposed", "accepted", "rejected", "active", "completed", "cancelled"]);
 
 export const matches = pgTable("matches", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
   tenantId: text("tenant_id").notNull().references(() => tenants.id),
   mentorId: text("mentor_id").notNull().references(() => users.id),
   menteeId: text("mentee_id").notNull().references(() => users.id),

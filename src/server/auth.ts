@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { db } from "@/server/db";
-import { users } from "@/server/db/schema";
+import { users, tenants } from "@/server/db/schema";
 import { eq, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
@@ -16,12 +16,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
+        if (!db) return null;
 
         try {
+          const tenantSlug = (credentials.tenantSlug as string | undefined) ?? "goid";
+
+          const tenant = await db
+            .select()
+            .from(tenants)
+            .where(eq(tenants.slug, tenantSlug))
+            .limit(1)
+            .then((r) => r[0]);
+          if (!tenant) return null;
+
           const user = await db
             .select()
             .from(users)
-            .where(eq(users.email, credentials.email as string))
+            .where(
+              and(
+                eq(users.email, credentials.email as string),
+                eq(users.tenantId, tenant.id)
+              )
+            )
             .limit(1)
             .then((r) => r[0]);
 

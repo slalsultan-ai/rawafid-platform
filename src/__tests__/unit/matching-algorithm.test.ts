@@ -329,16 +329,16 @@ describe("rankMentors", () => {
     expect(result.map((r) => r.mentorUserId)).not.toContain("userC");
   });
 
-  it("excludes mentors with score 0", () => {
+  it("includes mentors with score 0 (sorted last) so the user can still pick", () => {
     const zeroDomainMentee = {
       ...baseMentee,
       desiredArea: "مجال غير موجود",
       desiredSkills: [],
     };
-    // With custom all-domain weight, mentorB gets 0 domain score
     const domainOnly = { domain: 1, skills: 0, experience: 0, availability: 0, rating: 0 };
     const result = rankMentors(zeroDomainMentee, [mentorB], domainOnly);
-    expect(result).toHaveLength(0);
+    expect(result).toHaveLength(1);
+    expect(result[0].score).toBe(0);
   });
 
   it("respects the limit parameter", () => {

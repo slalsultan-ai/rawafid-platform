@@ -2,7 +2,6 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { menteeRequests } from "@/server/db/schema";
 import { eq, and } from "drizzle-orm";
-import { nanoid } from "nanoid";
 import { TRPCError } from "@trpc/server";
 
 export const menteesRouter = createTRPCRouter({
@@ -17,13 +16,13 @@ export const menteesRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Check for existing open request
       const existing = await ctx.db
         .select()
         .from(menteeRequests)
         .where(
           and(
             eq(menteeRequests.userId, ctx.user.id),
+            eq(menteeRequests.tenantId, ctx.user.tenantId),
             eq(menteeRequests.status, "open")
           )
         )
@@ -37,10 +36,9 @@ export const menteesRouter = createTRPCRouter({
         });
       }
 
-      const request = await ctx.db
+      return ctx.db
         .insert(menteeRequests)
         .values({
-          id: nanoid(),
           userId: ctx.user.id,
           tenantId: ctx.user.tenantId,
           desiredArea: input.desiredArea,
@@ -52,15 +50,18 @@ export const menteesRouter = createTRPCRouter({
         })
         .returning()
         .then((r) => r[0]);
-
-      return request;
     }),
 
   getMyRequests: protectedProcedure.query(async ({ ctx }) => {
     return ctx.db
       .select()
       .from(menteeRequests)
-      .where(eq(menteeRequests.userId, ctx.user.id));
+      .where(
+        and(
+          eq(menteeRequests.userId, ctx.user.id),
+          eq(menteeRequests.tenantId, ctx.user.tenantId)
+        )
+      );
   }),
 
   cancelRequest: protectedProcedure
@@ -72,7 +73,8 @@ export const menteesRouter = createTRPCRouter({
         .where(
           and(
             eq(menteeRequests.id, input.requestId),
-            eq(menteeRequests.userId, ctx.user.id)
+            eq(menteeRequests.userId, ctx.user.id),
+            eq(menteeRequests.tenantId, ctx.user.tenantId)
           )
         );
       return { success: true };

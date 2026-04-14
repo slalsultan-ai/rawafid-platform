@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
@@ -25,41 +27,12 @@ export default function LoginPage() {
   const router = useRouter();
   const params = useParams();
   const locale = params.locale as string;
-  const isRTL = locale === "ar";
+  const t = useTranslations("auth");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const t = {
-    ar: {
-      welcome: "مرحباً بك في روافد",
-      subtitle: "منصة الإرشاد المهني الذكي",
-      email: "البريد الإلكتروني",
-      password: "كلمة المرور",
-      login: "دخول",
-      error: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
-      emailPlaceholder: "example@goid.gov.sa",
-    },
-    en: {
-      welcome: "Welcome to Rawafid",
-      subtitle: "Smart Professional Mentoring Platform",
-      email: "Email",
-      password: "Password",
-      login: "Sign In",
-      error: "Invalid email or password",
-      emailPlaceholder: "example@goid.gov.sa",
-    },
-  }[locale] ?? {
-    welcome: "Welcome to Rawafid",
-    subtitle: "Smart Professional Mentoring Platform",
-    email: "Email",
-    password: "Password",
-    login: "Sign In",
-    error: "Invalid credentials",
-    emailPlaceholder: "example@goid.gov.sa",
-  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -75,7 +48,7 @@ export default function LoginPage() {
     setLoading(false);
 
     if (result?.error) {
-      setError(t.error);
+      setError(t("invalidCredentials"));
     } else {
       router.push(`/${locale}`);
     }
@@ -84,32 +57,30 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0f2837]/5 via-white to-amber-50/40 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-[#0f2837] rounded-2xl mb-4 shadow-lg">
             <StarLogo className="w-8 h-8 text-amber-400" />
           </div>
-          <h1 className="text-3xl font-bold text-slate-900">{t.welcome}</h1>
-          <p className="text-slate-500 mt-1">{t.subtitle}</p>
+          <h1 className="text-3xl font-bold text-slate-900">{t("loginWelcome")}</h1>
+          <p className="text-slate-500 mt-1">{t("loginSubtitle")}</p>
         </div>
 
-        {/* Form Card */}
         <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700">{t.email}</label>
+              <label className="text-sm font-medium text-slate-700">{t("email")}</label>
               <Input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder={t.emailPlaceholder}
+                placeholder="example@goid.gov.sa"
                 required
                 dir="ltr"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700">{t.password}</label>
+              <label className="text-sm font-medium text-slate-700">{t("password")}</label>
               <Input
                 type="password"
                 value={password}
@@ -126,12 +97,18 @@ export default function LoginPage() {
             )}
 
             <Button type="submit" className="w-full h-11" disabled={loading}>
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t.login}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t("loginButton")}
             </Button>
+
+            <p className="text-center text-sm text-slate-500">
+              {t("noAccount")}{" "}
+              <Link href={`/${locale}/register`} className="text-amber-600 hover:underline font-semibold">
+                {t("registerButton")}
+              </Link>
+            </p>
           </form>
         </div>
 
-        {/* Language switcher */}
         <div className="text-center mt-4">
           <button
             onClick={() => router.push(`/${locale === "ar" ? "en" : "ar"}/login`)}

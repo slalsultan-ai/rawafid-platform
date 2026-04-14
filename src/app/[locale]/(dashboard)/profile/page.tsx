@@ -1,17 +1,22 @@
 import { auth } from "@/server/auth";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { db } from "@/server/db";
 import { users, mentorProfiles } from "@/server/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getInitials } from "@/lib/utils";
-import { Briefcase, Mail, Building, Star } from "lucide-react";
+import { Briefcase, Mail, Building } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-export default async function ProfilePage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function ProfilePage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
   const { locale } = await params;
   const session = await auth();
   if (!session?.user) redirect(`/${locale}/login`);
@@ -19,19 +24,34 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
   const currentUser = session.user as { id: string; role: string; tenantId: string };
   const isRTL = locale === "ar";
 
-  const userData = db ? await db
-    .select()
-    .from(users)
-    .where(eq(users.id, currentUser.id))
-    .limit(1)
-    .then((r) => r[0]) : null;
+  const t = await getTranslations("profile");
+  const tCommon = await getTranslations("common");
+  const tAdmin = await getTranslations("admin");
+  const tMentor = await getTranslations("mentor");
 
-  const mentorProfile = db && (currentUser.role === "mentor") ? await db
-    .select()
-    .from(mentorProfiles)
-    .where(eq(mentorProfiles.userId, currentUser.id))
-    .limit(1)
-    .then((r) => r[0]) : null;
+  const userData = db
+    ? await db
+        .select()
+        .from(users)
+        .where(and(eq(users.id, currentUser.id), eq(users.tenantId, currentUser.tenantId)))
+        .limit(1)
+        .then((r) => r[0])
+    : null;
+
+  const mentorProfile =
+    db && currentUser.role === "mentor"
+      ? await db
+          .select()
+          .from(mentorProfiles)
+          .where(
+            and(
+              eq(mentorProfiles.userId, currentUser.id),
+              eq(mentorProfiles.tenantId, currentUser.tenantId)
+            )
+          )
+          .limit(1)
+          .then((r) => r[0])
+      : null;
 
   if (!userData) redirect(`/${locale}/login`);
 
@@ -40,9 +60,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold text-slate-900">
-        {isRTL ? "الملف الشخصي" : "Profile"}
-      </h1>
+      <h1 className="text-2xl font-bold text-slate-900">{t("title")}</h1>
 
       <Card>
         <CardContent className="p-6">
@@ -72,14 +90,20 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
                 </span>
               </div>
               <div className="flex gap-2 mt-3">
-                <Badge variant={currentUser.role === "mentor" ? "success" : currentUser.role === "org_admin" ? "default" : "secondary"}>
-                  {isRTL
-                    ? { org_admin: "مسؤول", mentor: "مرشد", mentee: "متدرب", employee: "موظف" }[currentUser.role] ?? currentUser.role
-                    : { org_admin: "Admin", mentor: "Mentor", mentee: "Mentee", employee: "Employee" }[currentUser.role] ?? currentUser.role}
+                <Badge
+                  variant={
+                    currentUser.role === "mentor"
+                      ? "success"
+                      : currentUser.role === "org_admin"
+                      ? "default"
+                      : "secondary"
+                  }
+                >
+                  {tAdmin(`roles.${currentUser.role}` as `roles.${"super_admin" | "org_admin" | "mentor" | "mentee" | "employee"}`)}
                 </Badge>
                 {userData.yearsOfExperience && (
                   <Badge variant="outline">
-                    {userData.yearsOfExperience} {isRTL ? "سنة خبرة" : "yrs exp"}
+                    {userData.yearsOfExperience} {tCommon("yearsExp")}
                   </Badge>
                 )}
               </div>
@@ -94,39 +118,56 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
         </CardContent>
       </Card>
 
-      {/* Mentor Profile */}
       {mentorProfile && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>{isRTL ? "ملف المرشد" : "Mentor Profile"}</CardTitle>
-              <Badge variant={mentorProfile.status === "approved" ? "success" : mentorProfile.status === "pending" ? "warning" : "destructive"}>
-                {mentorProfile.status === "approved" ? (isRTL ? "معتمد" : "Approved")
-                  : mentorProfile.status === "pending" ? (isRTL ? "قيد المراجعة" : "Pending")
-                  : (isRTL ? "مرفوض" : "Rejected")}
+              <CardTitle>{t("myMentorProfile")}</CardTitle>
+              <Badge
+                variant={
+                  mentorProfile.status === "approved"
+                    ? "success"
+                    : mentorProfile.status === "pending"
+                    ? "warning"
+                    : "destructive"
+                }
+              >
+                {mentorProfile.status === "approved"
+                  ? tMentor("approved")
+                  : mentorProfile.status === "pending"
+                  ? tMentor("pendingApproval")
+                  : tMentor("rejected")}
               </Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {areas.length > 0 && (
               <div>
-                <p className="text-xs font-medium text-slate-500 mb-2">{isRTL ? "مجالات الخبرة" : "Areas of Expertise"}</p>
+                <p className="text-xs font-medium text-slate-500 mb-2">{t("expertise")}</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {areas.map((a, i) => <Badge key={i} variant="default">{isRTL ? a.nameAr : a.nameEn}</Badge>)}
+                  {areas.map((a, i) => (
+                    <Badge key={i} variant="default">
+                      {isRTL ? a.nameAr : a.nameEn}
+                    </Badge>
+                  ))}
                 </div>
               </div>
             )}
             {skills.length > 0 && (
               <div>
-                <p className="text-xs font-medium text-slate-500 mb-2">{isRTL ? "المهارات" : "Skills"}</p>
+                <p className="text-xs font-medium text-slate-500 mb-2">{t("skills")}</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {skills.map((s, i) => <Badge key={i} variant="secondary">{isRTL ? s.nameAr : s.nameEn}</Badge>)}
+                  {skills.map((s, i) => (
+                    <Badge key={i} variant="secondary">
+                      {isRTL ? s.nameAr : s.nameEn}
+                    </Badge>
+                  ))}
                 </div>
               </div>
             )}
             {mentorProfile.motivation && (
               <div>
-                <p className="text-xs font-medium text-slate-500 mb-1">{isRTL ? "دافع الإرشاد" : "Motivation"}</p>
+                <p className="text-xs font-medium text-slate-500 mb-1">{t("motivation")}</p>
                 <p className="text-sm text-slate-600">{mentorProfile.motivation}</p>
               </div>
             )}
@@ -137,9 +178,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
       {currentUser.role !== "mentor" && (
         <div className="text-center">
           <Link href={`/${locale}/mentors/register`}>
-            <Button variant="outline">
-              {isRTL ? "سجّل كمرشد" : "Register as Mentor"}
-            </Button>
+            <Button variant="outline">{t("becomeMentor")}</Button>
           </Link>
         </div>
       )}

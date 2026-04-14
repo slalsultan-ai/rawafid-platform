@@ -1,7 +1,8 @@
 import { pgTable, text, timestamp, jsonb, boolean } from "drizzle-orm/pg-core";
+import { nanoid } from "nanoid";
 
 export const tenants = pgTable("tenants", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
   name: text("name").notNull(),
   nameEn: text("name_en"),
   slug: text("slug").notNull().unique(),

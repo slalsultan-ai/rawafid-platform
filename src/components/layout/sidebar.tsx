@@ -11,9 +11,9 @@ import {
   BookOpen,
   User,
   BarChart3,
-  Settings,
   Shield,
   CalendarDays,
+  Settings,
 } from "lucide-react";
 
 function StarLogo({ className }: { className?: string }) {
@@ -92,6 +92,11 @@ export function Sidebar({ locale, userRole }: SidebarProps) {
       href: `/${locale}/admin/reports`,
       icon: BarChart3,
       label: t("reports"),
+    },
+    {
+      href: `/${locale}/admin/settings`,
+      icon: Settings,
+      label: t("settings"),
     },
   ];
 

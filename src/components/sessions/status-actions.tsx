@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { trpc } from "@/lib/trpc/client";
 import { Button } from "@/components/ui/button";
 import { PlayCircle, CheckCircle2, XCircle } from "lucide-react";
@@ -8,11 +9,11 @@ import { PlayCircle, CheckCircle2, XCircle } from "lucide-react";
 interface Props {
   sessionId: string;
   currentStatus: string;
-  isRTL: boolean;
 }
 
-export function StatusActions({ sessionId, currentStatus, isRTL }: Props) {
+export function StatusActions({ sessionId, currentStatus }: Props) {
   const router = useRouter();
+  const t = useTranslations("session");
 
   const update = trpc.sessions.updateStatus.useMutation({
     onSuccess: () => router.refresh(),
@@ -31,7 +32,7 @@ export function StatusActions({ sessionId, currentStatus, isRTL }: Props) {
           disabled={update.isPending}
         >
           <PlayCircle className="w-4 h-4" />
-          {isRTL ? "بدء التحضير" : "Start Preparing"}
+          {t("preparing")}
         </Button>
       )}
 
@@ -44,7 +45,7 @@ export function StatusActions({ sessionId, currentStatus, isRTL }: Props) {
           disabled={update.isPending}
         >
           <CheckCircle2 className="w-4 h-4" />
-          {isRTL ? "تم الاكتمال" : "Mark Completed"}
+          {t("markCompleted")}
         </Button>
       )}
 
@@ -56,7 +57,7 @@ export function StatusActions({ sessionId, currentStatus, isRTL }: Props) {
         disabled={update.isPending}
       >
         <XCircle className="w-4 h-4" />
-        {isRTL ? "إلغاء الجلسة" : "Cancel Session"}
+        {t("markCancelled")}
       </Button>
     </div>
   );

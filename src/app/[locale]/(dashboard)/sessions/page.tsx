@@ -1,5 +1,6 @@
 import { auth } from "@/server/auth";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { db } from "@/server/db";
 import { sessions, matches, users } from "@/server/db/schema";
 import { eq, and, or, desc, inArray } from "drizzle-orm";
@@ -19,14 +20,21 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-const statusConfig: Record<string, { color: "warning" | "success" | "secondary" | "destructive" | "default"; arLabel: string; enLabel: string }> = {
-  scheduled: { color: "default", arLabel: "مجدولة", enLabel: "Scheduled" },
-  preparing: { color: "warning", arLabel: "قيد التحضير", enLabel: "Preparing" },
-  completed: { color: "success", arLabel: "مكتملة", enLabel: "Completed" },
-  cancelled: { color: "destructive", arLabel: "ملغاة", enLabel: "Cancelled" },
+const statusConfig: Record<
+  string,
+  { color: "warning" | "success" | "secondary" | "destructive" | "default"; key: "scheduled" | "preparing" | "completed" | "cancelled" }
+> = {
+  scheduled: { color: "default", key: "scheduled" },
+  preparing: { color: "warning", key: "preparing" },
+  completed: { color: "success", key: "completed" },
+  cancelled: { color: "destructive", key: "cancelled" },
 };
 
-export default async function SessionsPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function SessionsPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
   const { locale } = await params;
   const session = await auth();
   if (!session?.user) redirect(`/${locale}/login`);
@@ -34,7 +42,9 @@ export default async function SessionsPage({ params }: { params: Promise<{ local
   const user = session.user as { id: string; role: string; tenantId: string };
   const isRTL = locale === "ar";
 
-  // Get all matches for this user
+  const t = await getTranslations("session");
+  const tCommon = await getTranslations("common");
+
   const myMatches = db
     ? await db
         .select({ id: matches.id })
@@ -59,10 +69,7 @@ export default async function SessionsPage({ params }: { params: Promise<{ local
           .orderBy(desc(sessions.scheduledAt))
       : [];
 
-  // Batch fetch all user info
-  const userIds = [
-    ...new Set(allSessions.flatMap((s) => [s.match.mentorId, s.match.menteeId])),
-  ];
+  const userIds = [...new Set(allSessions.flatMap((s) => [s.match.mentorId, s.match.menteeId]))];
   const matchUsers =
     userIds.length > 0 && db
       ? await db
@@ -90,11 +97,9 @@ export default async function SessionsPage({ params }: { params: Promise<{ local
   function SessionCard({ session: s, otherUser, isMentor }: (typeof enriched)[0]) {
     const cfg = statusConfig[s.status];
     const dt = new Date(s.scheduledAt);
-    const dateStr = dt.toLocaleDateString(isRTL ? "ar-SA" : "en-US", {
-      weekday: "short", year: "numeric", month: "short", day: "numeric",
-    });
     const timeStr = dt.toLocaleTimeString(isRTL ? "ar-SA" : "en-US", {
-      hour: "2-digit", minute: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
     });
 
     return (
@@ -102,48 +107,51 @@ export default async function SessionsPage({ params }: { params: Promise<{ local
         <Card className="hover:shadow-md transition-shadow cursor-pointer">
           <CardContent className="p-5">
             <div className="flex items-start gap-4">
-              {/* Date block */}
               <div className="shrink-0 w-14 text-center">
-                <div className="text-2xl font-bold text-teal-600 leading-none">
-                  {dt.getDate()}
-                </div>
+                <div className="text-2xl font-bold text-teal-600 leading-none">{dt.getDate()}</div>
                 <div className="text-xs text-slate-500 mt-0.5">
                   {dt.toLocaleDateString(isRTL ? "ar-SA" : "en-US", { month: "short" })}
                 </div>
-                <div className="text-xs text-slate-400">
-                  {dt.getFullYear()}
-                </div>
+                <div className="text-xs text-slate-400">{dt.getFullYear()}</div>
               </div>
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <Avatar className="h-8 w-8 shrink-0">
-                      <AvatarFallback className="text-xs">{getInitials(otherUser?.name ?? "?")}</AvatarFallback>
+                      <AvatarFallback className="text-xs">
+                        {getInitials(otherUser?.name ?? "?")}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
                       <p className="font-medium text-slate-900 truncate text-sm">{otherUser?.name}</p>
                       <p className="text-xs text-slate-500 truncate">
-                        {isMentor
-                          ? isRTL ? "متدرب" : "Mentee"
-                          : isRTL ? "مرشد" : "Mentor"}
+                        {isMentor ? tCommon("mentee") : tCommon("mentor")}
                       </p>
                     </div>
                   </div>
                   <Badge variant={cfg.color} className="shrink-0">
-                    {isRTL ? cfg.arLabel : cfg.enLabel}
+                    {t(cfg.key)}
                   </Badge>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-slate-500">
                   <span className="flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5" />
-                    {timeStr} — {s.durationMinutes} {isRTL ? "د" : "min"}
+                    {timeStr} — {s.durationMinutes} {tCommon("minutes")}
                   </span>
                   <span className="flex items-center gap-1">
-                    {s.type === "virtual"
-                      ? <><Video className="w-3.5 h-3.5 text-teal-500" />{isRTL ? "افتراضية" : "Virtual"}</>
-                      : <><MapPin className="w-3.5 h-3.5 text-violet-500" />{isRTL ? "حضورية" : "In-Person"}</>}
+                    {s.type === "virtual" ? (
+                      <>
+                        <Video className="w-3.5 h-3.5 text-teal-500" />
+                        {t("virtual")}
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="w-3.5 h-3.5 text-violet-500" />
+                        {t("inPerson")}
+                      </>
+                    )}
                   </span>
                   {s.locationOrLink && (
                     <span className="truncate max-w-[160px] text-teal-600">{s.locationOrLink}</span>
@@ -161,29 +169,23 @@ export default async function SessionsPage({ params }: { params: Promise<{ local
 
   return (
     <div className="space-y-8 max-w-3xl">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">
-            {isRTL ? "الجلسات" : "Sessions"}
-          </h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {isRTL ? "تابع جلساتك القادمة والسابقة" : "Track your upcoming and past sessions"}
-          </p>
+          <h1 className="text-2xl font-bold text-slate-900">{t("upcoming")}</h1>
+          <p className="text-sm text-slate-500 mt-0.5">{t("past")}</p>
         </div>
         <Link href={`/${locale}/sessions/new`}>
           <Button className="gap-2">
             <Plus className="w-4 h-4" />
-            {isRTL ? "جدولة جلسة" : "Schedule Session"}
+            {t("schedule")}
           </Button>
         </Link>
       </div>
 
-      {/* Upcoming */}
       <section>
         <h2 className="text-base font-semibold text-slate-700 mb-4 flex items-center gap-2">
           <CalendarDays className="w-5 h-5 text-teal-500" />
-          {isRTL ? "القادمة" : "Upcoming"}
+          {t("upcoming")}
           {upcoming.length > 0 && (
             <span className="text-xs bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full font-medium">
               {upcoming.length}
@@ -193,34 +195,35 @@ export default async function SessionsPage({ params }: { params: Promise<{ local
         {upcoming.length === 0 ? (
           <div className="text-center py-10 border border-dashed border-slate-200 rounded-2xl">
             <CalendarDays className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 text-sm mb-4">
-              {isRTL ? "لا توجد جلسات قادمة" : "No upcoming sessions"}
-            </p>
+            <p className="text-slate-500 text-sm mb-4">{t("noSessions")}</p>
             <Link href={`/${locale}/sessions/new`}>
               <Button size="sm" variant="outline">
-                {isRTL ? "جدولة جلسة الآن" : "Schedule a Session"}
+                {t("schedule")}
               </Button>
             </Link>
           </div>
         ) : (
           <div className="space-y-3">
-            {upcoming.map((e) => <SessionCard key={e.session.id} {...e} />)}
+            {upcoming.map((e) => (
+              <SessionCard key={e.session.id} {...e} />
+            ))}
           </div>
         )}
       </section>
 
-      {/* Past */}
       {past.length > 0 && (
         <section>
           <h2 className="text-base font-semibold text-slate-700 mb-4 flex items-center gap-2">
             <Clock className="w-5 h-5 text-slate-400" />
-            {isRTL ? "السابقة" : "Past Sessions"}
+            {t("past")}
             <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium">
               {past.length}
             </span>
           </h2>
           <div className="space-y-3">
-            {past.map((e) => <SessionCard key={e.session.id} {...e} />)}
+            {past.map((e) => (
+              <SessionCard key={e.session.id} {...e} />
+            ))}
           </div>
         </section>
       )}

@@ -2,7 +2,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getInitials, getScoreBgColor, formatScore } from "@/lib/utils";
-import { Star, Briefcase, Clock } from "lucide-react";
+import { Star, Briefcase } from "lucide-react";
 import Link from "next/link";
 import type { User, MentorProfile } from "@/server/db/schema";
 
@@ -13,9 +13,26 @@ interface MentorCardProps {
   locale: string;
   onSelect?: () => void;
   actionLabel?: string;
+  viewLabel?: string;
+  yearsLabel?: string;
+  prefVirtual?: string;
+  prefInPerson?: string;
+  prefBoth?: string;
 }
 
-export function MentorCard({ user, profile, score, locale, onSelect, actionLabel }: MentorCardProps) {
+export function MentorCard({
+  user,
+  profile,
+  score,
+  locale,
+  onSelect,
+  actionLabel,
+  viewLabel,
+  yearsLabel,
+  prefVirtual,
+  prefInPerson,
+  prefBoth,
+}: MentorCardProps) {
   const isRTL = locale === "ar";
   const skills = (profile.skills as Array<{ id: string; nameAr: string; nameEn: string }>) ?? [];
   const areas = (profile.areasOfExpertise as Array<{ id: string; nameAr: string; nameEn: string }>) ?? [];
@@ -47,12 +64,12 @@ export function MentorCard({ user, profile, score, locale, onSelect, actionLabel
           <div className="flex items-center gap-3 mt-2">
             <span className="flex items-center gap-1 text-xs text-slate-500">
               <Briefcase className="w-3.5 h-3.5" />
-              {user.yearsOfExperience} {isRTL ? "سنة خبرة" : "yrs exp"}
+              {user.yearsOfExperience} {yearsLabel ?? (isRTL ? "سنة خبرة" : "yrs exp.")}
             </span>
-            {profile.averageRating && profile.totalRatings && profile.totalRatings > 0 && (
+            {profile.averageRating != null && profile.totalRatings && profile.totalRatings > 0 && (
               <span className="flex items-center gap-1 text-xs text-amber-600">
                 <Star className="w-3.5 h-3.5 fill-amber-500" />
-                {(profile.averageRating / 10).toFixed(1)}
+                {profile.averageRating.toFixed(1)}
               </span>
             )}
             <Badge
@@ -66,16 +83,15 @@ export function MentorCard({ user, profile, score, locale, onSelect, actionLabel
               className="text-xs"
             >
               {profile.sessionPreference === "virtual"
-                ? isRTL ? "افتراضي" : "Virtual"
+                ? prefVirtual ?? (isRTL ? "افتراضي" : "Virtual")
                 : profile.sessionPreference === "in_person"
-                ? isRTL ? "حضوري" : "In Person"
-                : isRTL ? "كلاهما" : "Both"}
+                ? prefInPerson ?? (isRTL ? "حضوري" : "In Person")
+                : prefBoth ?? (isRTL ? "كلاهما" : "Both")}
             </Badge>
           </div>
         </div>
       </div>
 
-      {/* Expertise areas */}
       {areas.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {areas.slice(0, 3).map((area) => (
@@ -83,13 +99,10 @@ export function MentorCard({ user, profile, score, locale, onSelect, actionLabel
               {getLabel(area)}
             </Badge>
           ))}
-          {areas.length > 3 && (
-            <Badge variant="outline" className="text-xs">+{areas.length - 3}</Badge>
-          )}
+          {areas.length > 3 && <Badge variant="outline" className="text-xs">+{areas.length - 3}</Badge>}
         </div>
       )}
 
-      {/* Skills */}
       {skills.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
           {skills.slice(0, 4).map((skill) => (
@@ -103,18 +116,14 @@ export function MentorCard({ user, profile, score, locale, onSelect, actionLabel
         </div>
       )}
 
-      {/* Motivation preview */}
       {profile.motivation && (
-        <p className="mt-3 text-xs text-slate-600 line-clamp-2 leading-relaxed">
-          {profile.motivation}
-        </p>
+        <p className="mt-3 text-xs text-slate-600 line-clamp-2 leading-relaxed">{profile.motivation}</p>
       )}
 
-      {/* Actions */}
       <div className="mt-4 flex gap-2">
         <Link href={`/${locale}/mentors/${user.id}`} className="flex-1">
           <Button variant="outline" size="sm" className="w-full">
-            {isRTL ? "عرض الملف" : "View Profile"}
+            {viewLabel ?? (isRTL ? "عرض الملف" : "View Profile")}
           </Button>
         </Link>
         {onSelect && actionLabel && (

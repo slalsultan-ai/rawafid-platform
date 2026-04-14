@@ -62,16 +62,7 @@ const SKILLS = [
   { id: "business_development", nameAr: "تطوير الأعمال", nameEn: "Business Development" },
 ];
 
-const DEPARTMENTS = [
-  { id: "it", nameAr: "تقنية المعلومات", nameEn: "IT" },
-  { id: "hr", nameAr: "الموارد البشرية", nameEn: "HR" },
-  { id: "finance", nameAr: "المالية", nameEn: "Finance" },
-  { id: "marketing", nameAr: "التسويق والاتصال", nameEn: "Marketing" },
-  { id: "operations", nameAr: "العمليات", nameEn: "Operations" },
-  { id: "legal", nameAr: "الشؤون القانونية", nameEn: "Legal" },
-  { id: "strategy", nameAr: "التخطيط والاستراتيجية", nameEn: "Strategy" },
-  { id: "customer_service", nameAr: "خدمة العملاء", nameEn: "Customer Service" },
-];
+// Department list available via @/lib/constants for app usage.
 
 // ===== MENTOR DATA (20 mentors) =====
 
@@ -615,7 +606,7 @@ async function main() {
       status: "approved",
       approvedBy: adminId,
       approvedAt: new Date(),
-      averageRating: m.rating,
+      averageRating: m.rating / 10,
       totalRatings: m.totalRatings,
     });
   }
@@ -749,6 +740,7 @@ async function main() {
     await db.insert(schema.sessionSummaries).values({
       id: nanoid(),
       sessionId,
+      tenantId: TENANT_ID,
       authorId: mentorUserIds[matchPairs[matchIdx].mentorIdx],
       discussedPoints: "مناقشة التحديات الحالية وتحديد الأهداف القصيرة المدى",
       decisions: "العمل على مشروع تطبيقي خلال الشهر القادم",
@@ -759,6 +751,7 @@ async function main() {
     await db.insert(schema.sessionReviews).values({
       id: nanoid(),
       sessionId,
+      tenantId: TENANT_ID,
       reviewerId: menteeUserIds[matchPairs[matchIdx].menteeIdx],
       revieweeId: mentorUserIds[matchPairs[matchIdx].mentorIdx],
       overallRating: 4 + (i % 2),
@@ -813,6 +806,7 @@ async function main() {
       await db.insert(schema.developmentGoals).values({
         id: goalId,
         planId,
+        tenantId: TENANT_ID,
         title: g.title,
         status: g.status,
         targetDate: new Date("2026-12-31"),
@@ -821,6 +815,7 @@ async function main() {
       await db.insert(schema.goalMilestones).values({
         id: nanoid(),
         goalId,
+        tenantId: TENANT_ID,
         title: "إتمام قراءة الموارد الأساسية",
         status: "completed",
       });
@@ -828,6 +823,7 @@ async function main() {
       await db.insert(schema.goalMilestones).values({
         id: nanoid(),
         goalId,
+        tenantId: TENANT_ID,
         title: "تطبيق المفاهيم على مشروع حقيقي",
         status: "in_progress",
       });

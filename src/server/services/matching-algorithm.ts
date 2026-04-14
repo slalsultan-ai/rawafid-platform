@@ -44,6 +44,7 @@ export interface MenteeRequestData {
   desiredSkills: string[];
   yearsOfExperience: number;
   availability?: AvailabilitySlot[];
+  department?: string | null;
 }
 
 export interface MentorProfileData {
@@ -53,42 +54,48 @@ export interface MentorProfileData {
   yearsOfExperience: number;
   maxMentees: number;
   currentMenteeCount: number;
-  averageRating?: number;
-  totalRatings?: number;
+  averageRating?: number | null;
+  totalRatings?: number | null;
+  department?: string | null;
+}
+
+export interface MatchingOptions {
+  weights?: MatchingWeights;
+  allowSameDepartment?: boolean;
 }
 
 export function calculateDomainScore(mentee: MenteeRequestData, mentor: MentorProfileData): number {
   const desiredArea = mentee.desiredArea.toLowerCase().trim();
-  const mentorAreas = mentor.areasOfExpertise.map(a => ({
+  const mentorAreas = mentor.areasOfExpertise.map((a) => ({
     ar: a.nameAr.toLowerCase().trim(),
     en: a.nameEn.toLowerCase().trim(),
     id: a.id.toLowerCase().trim(),
   }));
 
-  // Exact match
   const exactMatch = mentorAreas.some(
-    a => a.ar === desiredArea || a.en === desiredArea || a.id === desiredArea
+    (a) => a.ar === desiredArea || a.en === desiredArea || a.id === desiredArea
   );
   if (exactMatch) return 100;
 
-  // Partial match (keyword overlap)
   const desiredWords = desiredArea.split(/\s+/);
-  const hasPartialMatch = mentorAreas.some(area => {
+  const hasPartialMatch = mentorAreas.some((area) => {
     const areaWords = `${area.ar} ${area.en} ${area.id}`.split(/\s+/);
-    return desiredWords.some(w => w.length > 2 && areaWords.some(aw => aw.includes(w) || w.includes(aw)));
+    return desiredWords.some(
+      (w) => w.length > 2 && areaWords.some((aw) => aw.includes(w) || w.includes(aw))
+    );
   });
 
   return hasPartialMatch ? 50 : 0;
 }
 
 export function calculateSkillsScore(mentee: MenteeRequestData, mentor: MentorProfileData): number {
-  if (!mentee.desiredSkills.length) return 50; // neutral if no specific skills requested
+  if (!mentee.desiredSkills.length) return 50;
 
   const mentorSkillIds = new Set(
-    mentor.skills.flatMap(s => [s.id.toLowerCase(), s.nameAr.toLowerCase(), s.nameEn.toLowerCase()])
+    mentor.skills.flatMap((s) => [s.id.toLowerCase(), s.nameAr.toLowerCase(), s.nameEn.toLowerCase()])
   );
 
-  const matchedCount = mentee.desiredSkills.filter(skill =>
+  const matchedCount = mentee.desiredSkills.filter((skill) =>
     mentorSkillIds.has(skill.toLowerCase())
   ).length;
 
@@ -98,19 +105,12 @@ export function calculateSkillsScore(mentee: MenteeRequestData, mentor: MentorPr
 export function calculateExperienceScore(mentee: MenteeRequestData, mentor: MentorProfileData): number {
   const gap = mentor.yearsOfExperience - mentee.yearsOfExperience;
 
-  // Mentor must have more experience
   if (gap <= 0) return 0;
-
-  // Ideal gap is 3–10 years
   if (gap >= 3 && gap <= 10) return 100;
-
-  // Gap of 1–2 years: partial
   if (gap < 3) return Math.round((gap / 3) * 80);
+  if (gap > 10 && gap <= 20) return Math.round(100 - (gap - 10) * 2);
 
-  // Gap > 10 years: slightly decreasing (too senior may not relate well)
-  if (gap > 10 && gap <= 20) return Math.round(100 - ((gap - 10) * 2));
-
-  return 60; // very senior mentor still valuable
+  return 60;
 }
 
 export function timeToMinutes(time: string): number {
@@ -119,13 +119,13 @@ export function timeToMinutes(time: string): number {
 }
 
 export function calculateAvailabilityScore(mentee: MenteeRequestData, mentor: MentorProfileData): number {
-  if (!mentee.availability?.length) return 70; // neutral if mentee has no preference
+  if (!mentee.availability?.length) return 70;
 
   let overlapScore = 0;
-  let totalSlots = mentee.availability.length;
+  const totalSlots = mentee.availability.length;
 
   for (const menteeSlot of mentee.availability) {
-    const matchingMentorSlot = mentor.availability.find(ms => ms.day === menteeSlot.day);
+    const matchingMentorSlot = mentor.availability.find((ms) => ms.day === menteeSlot.day);
     if (!matchingMentorSlot) continue;
 
     const menteeFrom = timeToMinutes(menteeSlot.from);
@@ -137,22 +137,20 @@ export function calculateAvailabilityScore(mentee: MenteeRequestData, mentor: Me
     const overlapEnd = Math.min(menteeTo, mentorTo);
     const overlapMinutes = Math.max(0, overlapEnd - overlapStart);
 
-    if (overlapMinutes >= 60) {
-      overlapScore += 1;
-    } else if (overlapMinutes > 0) {
-      overlapScore += overlapMinutes / 60;
-    }
+    if (overlapMinutes >= 60) overlapScore += 1;
+    else if (overlapMinutes > 0) overlapScore += overlapMinutes / 60;
   }
 
   return Math.round((overlapScore / totalSlots) * 100);
 }
 
 export function calculateRatingScore(mentor: MentorProfileData): number {
-  // New mentors get a neutral score of 70
   if (!mentor.totalRatings || mentor.totalRatings === 0) return 70;
-  if (!mentor.averageRating) return 70;
+  if (mentor.averageRating == null) return 70;
 
-  return Math.round((mentor.averageRating / 5) * 100);
+  // averageRating is on a 0-5 scale (real). Normalize to 0-100.
+  const clamped = Math.max(0, Math.min(5, mentor.averageRating));
+  return Math.round((clamped / 5) * 100);
 }
 
 export function calculateMatchingScore(
@@ -160,7 +158,6 @@ export function calculateMatchingScore(
   mentorProfile: MentorProfileData,
   weights: MatchingWeights = DEFAULT_WEIGHTS
 ): number {
-  // Skip full mentors
   if (mentorProfile.currentMenteeCount >= mentorProfile.maxMentees) return 0;
 
   const domainScore = calculateDomainScore(menteeRequest, mentorProfile);
@@ -195,12 +192,28 @@ export interface MentorWithScore {
 export function rankMentors(
   menteeRequest: MenteeRequestData,
   mentors: Array<{ userId: string; profileId: string; profile: MentorProfileData }>,
-  weights: MatchingWeights = DEFAULT_WEIGHTS,
+  optionsOrWeights: MatchingWeights | MatchingOptions = DEFAULT_WEIGHTS,
   limit = 10
 ): MentorWithScore[] {
+  const opts: MatchingOptions =
+    "weights" in optionsOrWeights || "allowSameDepartment" in optionsOrWeights
+      ? (optionsOrWeights as MatchingOptions)
+      : { weights: optionsOrWeights as MatchingWeights };
+  const weights = opts.weights ?? DEFAULT_WEIGHTS;
+  const allowSameDept = opts.allowSameDepartment ?? true;
+
   const scored = mentors
     .map(({ userId, profileId, profile }) => {
       if (profile.currentMenteeCount >= profile.maxMentees) return null;
+
+      if (
+        !allowSameDept &&
+        menteeRequest.department &&
+        profile.department &&
+        menteeRequest.department === profile.department
+      ) {
+        return null;
+      }
 
       const breakdown = {
         domain: calculateDomainScore(menteeRequest, profile),
@@ -224,7 +237,7 @@ export function rankMentors(
         breakdown,
       };
     })
-    .filter((m): m is MentorWithScore => m !== null && m.score > 0);
+    .filter((m): m is MentorWithScore => m !== null);
 
   return scored.sort((a, b) => b.score - a.score).slice(0, limit);
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { trpc } from "@/lib/trpc/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,11 +18,13 @@ interface Props {
   sessionId: string;
   initialItems: AgendaItem[];
   currentUserId: string;
-  isRTL: boolean;
 }
 
-export function AgendaClient({ sessionId, initialItems, currentUserId, isRTL }: Props) {
+export function AgendaClient({ sessionId, initialItems, currentUserId }: Props) {
   const router = useRouter();
+  const t = useTranslations("session");
+  const tCommon = useTranslations("common");
+
   const [items, setItems] = useState(initialItems);
   const [newContent, setNewContent] = useState("");
 
@@ -50,7 +53,7 @@ export function AgendaClient({ sessionId, initialItems, currentUserId, isRTL }: 
       {items.length === 0 && (
         <div className="flex flex-col items-center gap-2 py-6 text-slate-400">
           <ListChecks className="w-8 h-8" />
-          <p className="text-sm">{isRTL ? "لا توجد بنود في الأجندة بعد" : "No agenda items yet"}</p>
+          <p className="text-sm">{tCommon("noResults")}</p>
         </div>
       )}
 
@@ -75,13 +78,12 @@ export function AgendaClient({ sessionId, initialItems, currentUserId, isRTL }: 
         </div>
       ))}
 
-      {/* Add new item */}
       <div className="flex gap-2 pt-2">
         <Input
           value={newContent}
           onChange={(e) => setNewContent(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-          placeholder={isRTL ? "أضف بنداً للأجندة..." : "Add agenda item..."}
+          placeholder={t("agendaPlaceholder")}
           className="flex-1"
           disabled={addItem.isPending}
         />
@@ -92,7 +94,7 @@ export function AgendaClient({ sessionId, initialItems, currentUserId, isRTL }: 
           className="gap-1.5 shrink-0"
         >
           <Plus className="w-4 h-4" />
-          {isRTL ? "إضافة" : "Add"}
+          {t("addAgendaItem")}
         </Button>
       </div>
     </div>

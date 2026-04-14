@@ -8,11 +8,14 @@ import {
   sessionSummaries,
   matches,
 } from "@/server/db/schema";
-import { eq, and, or } from "drizzle-orm";
-import { nanoid } from "nanoid";
+import { eq, and } from "drizzle-orm";
+import { logAudit } from "@/server/services/audit";
+import { notify } from "@/server/services/notify";
+
+type DbType = NonNullable<typeof import("@/server/db").db>;
 
 async function assertSessionAccess(
-  db: NonNullable<typeof import("@/server/db").db>,
+  db: DbType,
   sessionId: string,
   userId: string,
   tenantId: string
@@ -32,7 +35,6 @@ async function assertSessionAccess(
 }
 
 export const sessionsRouter = createTRPCRouter({
-  /** Schedule a new session for an active match */
   schedule: protectedProcedure
     .input(
       z.object({
@@ -58,10 +60,9 @@ export const sessionsRouter = createTRPCRouter({
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 
-      const [session] = await ctx.db
+      const [created] = await ctx.db
         .insert(sessions)
         .values({
-          id: nanoid(),
           matchId: input.matchId,
           tenantId: ctx.user.tenantId,
           type: input.type,
@@ -72,10 +73,29 @@ export const sessionsRouter = createTRPCRouter({
         })
         .returning();
 
-      return session;
+      await logAudit({
+        tenantId: ctx.user.tenantId,
+        userId: ctx.user.id,
+        action: "session.schedule",
+        entityType: "session",
+        entityId: created.id,
+      });
+
+      const otherUserId =
+        match.mentorId === ctx.user.id ? match.menteeId : match.mentorId;
+      await notify({
+        tenantId: ctx.user.tenantId,
+        userId: otherUserId,
+        type: "session_scheduled",
+        title: "جلسة إرشاد جديدة",
+        body: `تمت جدولة جلسة في ${new Date(input.scheduledAt).toLocaleString("ar")}.`,
+        relatedEntityType: "session",
+        relatedEntityId: created.id,
+      });
+
+      return created;
     }),
 
-  /** Update session status */
   updateStatus: protectedProcedure
     .input(
       z.object({
@@ -84,39 +104,44 @@ export const sessionsRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      await assertSessionAccess(ctx.db, input.sessionId, ctx.user.id, ctx.user.tenantId);
+await assertSessionAccess(ctx.db, input.sessionId, ctx.user.id, ctx.user.tenantId);
 
       await ctx.db
         .update(sessions)
         .set({ status: input.status, updatedAt: new Date() })
         .where(eq(sessions.id, input.sessionId));
 
+      await logAudit({
+        tenantId: ctx.user.tenantId,
+        userId: ctx.user.id,
+        action: "session.update_status",
+        entityType: "session",
+        entityId: input.sessionId,
+        details: { status: input.status },
+      });
+
       return { success: true };
     }),
 
-  /** Add an agenda item */
   addAgendaItem: protectedProcedure
     .input(z.object({ sessionId: z.string(), content: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      await assertSessionAccess(ctx.db, input.sessionId, ctx.user.id, ctx.user.tenantId);
+await assertSessionAccess(ctx.db, input.sessionId, ctx.user.id, ctx.user.tenantId);
 
       const [item] = await ctx.db
         .insert(sessionAgendaItems)
         .values({
-          id: nanoid(),
           sessionId: input.sessionId,
+          tenantId: ctx.user.tenantId,
           addedBy: ctx.user.id,
           content: input.content,
-          order: Date.now(),
+          position: Date.now(),
         })
         .returning();
 
       return item;
     }),
 
-  /** Remove an agenda item (only the creator can remove) */
   removeAgendaItem: protectedProcedure
     .input(z.object({ itemId: z.string() }))
     .mutation(async ({ ctx, input }) => {
@@ -127,14 +152,14 @@ export const sessionsRouter = createTRPCRouter({
         .where(
           and(
             eq(sessionAgendaItems.id, input.itemId),
-            eq(sessionAgendaItems.addedBy, ctx.user.id)
+            eq(sessionAgendaItems.addedBy, ctx.user.id),
+            eq(sessionAgendaItems.tenantId, ctx.user.tenantId)
           )
         );
 
       return { success: true };
     }),
 
-  /** Add a private or shared note */
   addNote: protectedProcedure
     .input(
       z.object({
@@ -144,14 +169,13 @@ export const sessionsRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      await assertSessionAccess(ctx.db, input.sessionId, ctx.user.id, ctx.user.tenantId);
+await assertSessionAccess(ctx.db, input.sessionId, ctx.user.id, ctx.user.tenantId);
 
       const [note] = await ctx.db
         .insert(sessionNotes)
         .values({
-          id: nanoid(),
           sessionId: input.sessionId,
+          tenantId: ctx.user.tenantId,
           authorId: ctx.user.id,
           content: input.content,
           isPrivate: input.isPrivate,
@@ -161,7 +185,6 @@ export const sessionsRouter = createTRPCRouter({
       return note;
     }),
 
-  /** Save or update the post-session summary */
   saveSummary: protectedProcedure
     .input(
       z.object({
@@ -172,8 +195,7 @@ export const sessionsRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      await assertSessionAccess(ctx.db, input.sessionId, ctx.user.id, ctx.user.tenantId);
+await assertSessionAccess(ctx.db, input.sessionId, ctx.user.id, ctx.user.tenantId);
 
       const existing = await ctx.db
         .select()
@@ -198,8 +220,8 @@ export const sessionsRouter = createTRPCRouter({
       const [created] = await ctx.db
         .insert(sessionSummaries)
         .values({
-          id: nanoid(),
           sessionId: input.sessionId,
+          tenantId: ctx.user.tenantId,
           authorId: ctx.user.id,
           discussedPoints: input.discussedPoints,
           decisions: input.decisions,
@@ -210,7 +232,6 @@ export const sessionsRouter = createTRPCRouter({
       return created;
     }),
 
-  /** Delete a note (only the author) */
   deleteNote: protectedProcedure
     .input(z.object({ noteId: z.string() }))
     .mutation(async ({ ctx, input }) => {
@@ -221,7 +242,8 @@ export const sessionsRouter = createTRPCRouter({
         .where(
           and(
             eq(sessionNotes.id, input.noteId),
-            eq(sessionNotes.authorId, ctx.user.id)
+            eq(sessionNotes.authorId, ctx.user.id),
+            eq(sessionNotes.tenantId, ctx.user.tenantId)
           )
         );
 

@@ -1,11 +1,13 @@
 import { auth } from "@/server/auth";
 import { redirect, notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { db } from "@/server/db";
 import {
   sessions,
   sessionAgendaItems,
   sessionNotes,
   sessionSummaries,
+  sessionReviews,
   matches,
   users,
 } from "@/server/db/schema";
@@ -24,17 +26,22 @@ import {
   ListChecks,
   StickyNote,
   FileText,
+  Star,
 } from "lucide-react";
 import { AgendaClient } from "@/components/sessions/agenda-client";
 import { NotesClient } from "@/components/sessions/notes-client";
 import { SummaryClient } from "@/components/sessions/summary-client";
 import { StatusActions } from "@/components/sessions/status-actions";
+import { ReviewForm } from "@/components/sessions/review-form";
 
-const statusConfig: Record<string, { color: "warning" | "success" | "secondary" | "destructive" | "default"; arLabel: string; enLabel: string }> = {
-  scheduled: { color: "default", arLabel: "مجدولة", enLabel: "Scheduled" },
-  preparing: { color: "warning", arLabel: "قيد التحضير", enLabel: "Preparing" },
-  completed: { color: "success", arLabel: "مكتملة", enLabel: "Completed" },
-  cancelled: { color: "destructive", arLabel: "ملغاة", enLabel: "Cancelled" },
+const statusConfig: Record<
+  string,
+  { color: "warning" | "success" | "secondary" | "destructive" | "default"; key: "scheduled" | "preparing" | "completed" | "cancelled" }
+> = {
+  scheduled: { color: "default", key: "scheduled" },
+  preparing: { color: "warning", key: "preparing" },
+  completed: { color: "success", key: "completed" },
+  cancelled: { color: "destructive", key: "cancelled" },
 };
 
 export default async function SessionDetailPage({
@@ -49,9 +56,11 @@ export default async function SessionDetailPage({
   const user = session.user as { id: string; role: string; tenantId: string };
   const isRTL = locale === "ar";
 
+  const t = await getTranslations("session");
+  const tCommon = await getTranslations("common");
+
   if (!db) notFound();
 
-  // Fetch session + match
   const rows = await db
     .select({ session: sessions, match: matches })
     .from(sessions)
@@ -61,12 +70,10 @@ export default async function SessionDetailPage({
   if (!rows[0]) notFound();
   const { session: sessionData, match } = rows[0];
 
-  // Check access
   if (match.mentorId !== user.id && match.menteeId !== user.id) notFound();
 
   const isMentor = match.mentorId === user.id;
 
-  // Fetch mentor and mentee user info
   const [mentorUser, menteeUser] = await Promise.all([
     db.select().from(users).where(eq(users.id, match.mentorId)).then((r) => r[0]),
     db.select().from(users).where(eq(users.id, match.menteeId)).then((r) => r[0]),
@@ -74,13 +81,12 @@ export default async function SessionDetailPage({
 
   const otherUser = isMentor ? menteeUser : mentorUser;
 
-  // Fetch agenda, notes (visible), summary in parallel
-  const [agenda, notes, summaryRows] = await Promise.all([
+  const [agenda, notes, summaryRows, reviews] = await Promise.all([
     db
       .select()
       .from(sessionAgendaItems)
       .where(eq(sessionAgendaItems.sessionId, id))
-      .orderBy(asc(sessionAgendaItems.order)),
+      .orderBy(asc(sessionAgendaItems.position)),
     db
       .select()
       .from(sessionNotes)
@@ -95,6 +101,10 @@ export default async function SessionDetailPage({
       .select()
       .from(sessionSummaries)
       .where(eq(sessionSummaries.sessionId, id)),
+    db
+      .select()
+      .from(sessionReviews)
+      .where(eq(sessionReviews.sessionId, id)),
   ]);
 
   const summary = summaryRows[0] ?? null;
@@ -102,26 +112,30 @@ export default async function SessionDetailPage({
 
   const dt = new Date(sessionData.scheduledAt);
   const dateStr = dt.toLocaleDateString(isRTL ? "ar-SA" : "en-US", {
-    weekday: "long", year: "numeric", month: "long", day: "numeric",
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
   const timeStr = dt.toLocaleTimeString(isRTL ? "ar-SA" : "en-US", {
-    hour: "2-digit", minute: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 
   const isActive = sessionData.status === "scheduled" || sessionData.status === "preparing";
+  const myReview = reviews.find((r) => r.reviewerId === user.id);
+  const revieweeId = isMentor ? match.menteeId : match.mentorId;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      {/* Back */}
       <Link
         href={`/${locale}/sessions`}
         className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-teal-600 transition-colors"
       >
         <ArrowRight className={`w-4 h-4 ${isRTL ? "" : "rotate-180"}`} />
-        {isRTL ? "الجلسات" : "Back to Sessions"}
+        {t("back")}
       </Link>
 
-      {/* Session header card */}
       <Card>
         <CardContent className="p-6">
           <div className="flex items-start justify-between gap-4">
@@ -134,16 +148,12 @@ export default async function SessionDetailPage({
               <div>
                 <p className="font-bold text-slate-900 text-lg">{otherUser?.name}</p>
                 <p className="text-sm text-slate-500">
-                  {isMentor
-                    ? isRTL ? "متدرب" : "Mentee"
-                    : isRTL ? "مرشد" : "Mentor"}
+                  {isMentor ? tCommon("mentee") : tCommon("mentor")}
                   {otherUser?.jobTitle ? ` • ${otherUser.jobTitle}` : ""}
                 </p>
               </div>
             </div>
-            <Badge variant={cfg.color}>
-              {isRTL ? cfg.arLabel : cfg.enLabel}
-            </Badge>
+            <Badge variant={cfg.color}>{t(cfg.key)}</Badge>
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -153,17 +163,31 @@ export default async function SessionDetailPage({
             </div>
             <div className="flex items-center gap-2 text-sm text-slate-600">
               <Clock className="w-4 h-4 text-slate-400 shrink-0" />
-              <span>{timeStr} ({sessionData.durationMinutes} {isRTL ? "د" : "min"})</span>
+              <span>
+                {timeStr} ({sessionData.durationMinutes} {tCommon("minutes")})
+              </span>
             </div>
             <div className="flex items-center gap-2 text-sm text-slate-600">
-              {sessionData.type === "virtual"
-                ? <><Video className="w-4 h-4 text-teal-500 shrink-0" />{isRTL ? "افتراضية" : "Virtual"}</>
-                : <><MapPin className="w-4 h-4 text-violet-500 shrink-0" />{isRTL ? "حضورية" : "In-Person"}</>}
+              {sessionData.type === "virtual" ? (
+                <>
+                  <Video className="w-4 h-4 text-teal-500 shrink-0" />
+                  {t("virtual")}
+                </>
+              ) : (
+                <>
+                  <MapPin className="w-4 h-4 text-violet-500 shrink-0" />
+                  {t("inPerson")}
+                </>
+              )}
             </div>
             {sessionData.locationOrLink && (
               <div className="flex items-center gap-2 text-sm text-teal-600 col-span-2 sm:col-span-1">
                 <a
-                  href={sessionData.locationOrLink.startsWith("http") ? sessionData.locationOrLink : undefined}
+                  href={
+                    sessionData.locationOrLink.startsWith("http")
+                      ? sessionData.locationOrLink
+                      : undefined
+                  }
                   target="_blank"
                   rel="noopener noreferrer"
                   className="truncate hover:underline"
@@ -174,28 +198,19 @@ export default async function SessionDetailPage({
             )}
           </div>
 
-          {/* Status actions */}
           {isActive && (
             <div className="mt-5 pt-4 border-t border-slate-100">
-              <p className="text-xs text-slate-400 mb-2">
-                {isRTL ? "تحديث حالة الجلسة:" : "Update session status:"}
-              </p>
-              <StatusActions
-                sessionId={sessionData.id}
-                currentStatus={sessionData.status}
-                isRTL={isRTL}
-              />
+              <StatusActions sessionId={sessionData.id} currentStatus={sessionData.status} />
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Agenda */}
       <Card>
         <CardContent className="p-6">
           <h2 className="flex items-center gap-2 font-semibold text-slate-800 mb-4">
             <ListChecks className="w-5 h-5 text-teal-500" />
-            {isRTL ? "أجندة الجلسة" : "Session Agenda"}
+            {t("agenda")}
           </h2>
           <AgendaClient
             sessionId={sessionData.id}
@@ -205,20 +220,15 @@ export default async function SessionDetailPage({
               addedBy: a.addedBy,
             }))}
             currentUserId={user.id}
-            isRTL={isRTL}
           />
         </CardContent>
       </Card>
 
-      {/* Notes */}
       <Card>
         <CardContent className="p-6">
           <h2 className="flex items-center gap-2 font-semibold text-slate-800 mb-4">
             <StickyNote className="w-5 h-5 text-amber-500" />
-            {isRTL ? "الملاحظات" : "Notes"}
-            <span className="text-xs text-slate-400 font-normal">
-              {isRTL ? "(الخاصة لك فقط، المشتركة تظهر للطرفين)" : "(Private: only you see them; Shared: visible to both)"}
-            </span>
+            {t("notes")}
           </h2>
           <NotesClient
             sessionId={sessionData.id}
@@ -230,23 +240,16 @@ export default async function SessionDetailPage({
               createdAt: n.createdAt,
             }))}
             currentUserId={user.id}
-            isRTL={isRTL}
           />
         </CardContent>
       </Card>
 
-      {/* Summary — show for all statuses, but hint that it's for post-session */}
       <Card className={sessionData.status === "scheduled" ? "opacity-60" : ""}>
         <CardContent className="p-6">
-          <h2 className="flex items-center gap-2 font-semibold text-slate-800 mb-1">
+          <h2 className="flex items-center gap-2 font-semibold text-slate-800 mb-4">
             <FileText className="w-5 h-5 text-violet-500" />
-            {isRTL ? "ملخص الجلسة" : "Session Summary"}
+            {t("summary")}
           </h2>
-          {sessionData.status === "scheduled" && (
-            <p className="text-xs text-slate-400 mb-4">
-              {isRTL ? "يُملأ بعد انتهاء الجلسة" : "Fill this after the session is completed"}
-            </p>
-          )}
           <SummaryClient
             sessionId={sessionData.id}
             initialSummary={
@@ -258,10 +261,25 @@ export default async function SessionDetailPage({
                   }
                 : null
             }
-            isRTL={isRTL}
           />
         </CardContent>
       </Card>
+
+      {sessionData.status === "completed" && (
+        <Card>
+          <CardContent className="p-6">
+            <h2 className="flex items-center gap-2 font-semibold text-slate-800 mb-4">
+              <Star className="w-5 h-5 text-amber-500" />
+              {t("addReview")}
+            </h2>
+            <ReviewForm
+              sessionId={sessionData.id}
+              revieweeId={revieweeId}
+              alreadyReviewed={!!myReview}
+            />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

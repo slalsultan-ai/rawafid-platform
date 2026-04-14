@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { trpc } from "@/lib/trpc/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,12 +17,14 @@ interface MatchOption {
 interface Props {
   matches: MatchOption[];
   locale: string;
-  isRTL: boolean;
   preselectedMatchId?: string;
 }
 
-export function ScheduleForm({ matches, locale, isRTL, preselectedMatchId }: Props) {
+export function ScheduleForm({ matches, locale, preselectedMatchId }: Props) {
   const router = useRouter();
+  const t = useTranslations("session");
+  const tCommon = useTranslations("common");
+
   const [matchId, setMatchId] = useState(preselectedMatchId ?? matches[0]?.id ?? "");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
@@ -35,44 +38,35 @@ export function ScheduleForm({ matches, locale, isRTL, preselectedMatchId }: Pro
       router.push(`/${locale}/sessions/${session.id}`);
       router.refresh();
     },
-    onError: () => setError(isRTL ? "حدث خطأ، يرجى المحاولة مرة أخرى" : "An error occurred, please try again"),
+    onError: (err) => setError(err.message),
   });
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     if (!matchId || !date || !time) {
-      setError(isRTL ? "يرجى ملء جميع الحقول المطلوبة" : "Please fill all required fields");
+      setError(tCommon("error"));
       return;
     }
     const scheduledAt = new Date(`${date}T${time}`).toISOString();
-    schedule.mutate({ matchId, scheduledAt, type, durationMinutes: duration, locationOrLink: locationOrLink || undefined });
+    schedule.mutate({
+      matchId,
+      scheduledAt,
+      type,
+      durationMinutes: duration,
+      locationOrLink: locationOrLink || undefined,
+    });
   }
-
-  const durationOptions = [
-    { value: 30, ar: "30 دقيقة", en: "30 minutes" },
-    { value: 45, ar: "45 دقيقة", en: "45 minutes" },
-    { value: 60, ar: "ساعة واحدة", en: "1 hour" },
-    { value: 90, ar: "ساعة ونصف", en: "1.5 hours" },
-    { value: 120, ar: "ساعتان", en: "2 hours" },
-  ];
 
   const selectClass =
     "h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-lg">
-      {/* Match selector */}
       {!preselectedMatchId && matches.length > 1 && (
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-slate-700">
-            {isRTL ? "العلاقة الإرشادية" : "Mentoring Relationship"}
-          </label>
-          <select
-            value={matchId}
-            onChange={(e) => setMatchId(e.target.value)}
-            className={selectClass}
-          >
+          <label className="text-sm font-medium text-slate-700">{t("selectMatch")}</label>
+          <select value={matchId} onChange={(e) => setMatchId(e.target.value)} className={selectClass}>
             {matches.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.otherPersonName}
@@ -83,12 +77,11 @@ export function ScheduleForm({ matches, locale, isRTL, preselectedMatchId }: Pro
         </div>
       )}
 
-      {/* Date and time */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
             <Calendar className="w-4 h-4 text-slate-400" />
-            {isRTL ? "التاريخ" : "Date"} *
+            {t("scheduledAt")} *
           </label>
           <Input
             type="date"
@@ -101,40 +94,25 @@ export function ScheduleForm({ matches, locale, isRTL, preselectedMatchId }: Pro
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
             <Clock className="w-4 h-4 text-slate-400" />
-            {isRTL ? "الوقت" : "Time"} *
+            {tCommon("schedule")} *
           </label>
-          <Input
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            required
-          />
+          <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
         </div>
       </div>
 
-      {/* Duration */}
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-slate-700">
-          {isRTL ? "مدة الجلسة" : "Session Duration"}
-        </label>
-        <select
-          value={duration}
-          onChange={(e) => setDuration(Number(e.target.value))}
-          className={selectClass}
-        >
-          {durationOptions.map((o) => (
-            <option key={o.value} value={o.value}>
-              {isRTL ? o.ar : o.en}
+        <label className="text-sm font-medium text-slate-700">{t("duration")}</label>
+        <select value={duration} onChange={(e) => setDuration(Number(e.target.value))} className={selectClass}>
+          {[30, 45, 60, 90, 120].map((value) => (
+            <option key={value} value={value}>
+              {value} {tCommon("minutes")}
             </option>
           ))}
         </select>
       </div>
 
-      {/* Type */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-slate-700">
-          {isRTL ? "نوع الجلسة" : "Session Type"}
-        </label>
+        <label className="text-sm font-medium text-slate-700">{t("type")}</label>
         <div className="flex gap-3">
           <button
             type="button"
@@ -146,7 +124,7 @@ export function ScheduleForm({ matches, locale, isRTL, preselectedMatchId }: Pro
             }`}
           >
             <Video className="w-4 h-4" />
-            {isRTL ? "افتراضية" : "Virtual"}
+            {t("virtual")}
           </button>
           <button
             type="button"
@@ -158,32 +136,27 @@ export function ScheduleForm({ matches, locale, isRTL, preselectedMatchId }: Pro
             }`}
           >
             <MapPin className="w-4 h-4" />
-            {isRTL ? "حضورية" : "In-Person"}
+            {t("inPerson")}
           </button>
         </div>
       </div>
 
-      {/* Location or link */}
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
           <Link2 className="w-4 h-4 text-slate-400" />
-          {type === "virtual"
-            ? isRTL ? "رابط الاجتماع (اختياري)" : "Meeting Link (optional)"
-            : isRTL ? "موقع اللقاء (اختياري)" : "Meeting Location (optional)"}
+          {t("locationOrLink")}
         </label>
         <Input
           value={locationOrLink}
           onChange={(e) => setLocationOrLink(e.target.value)}
-          placeholder={type === "virtual" ? "https://meet.google.com/..." : isRTL ? "مكتب 305، المبنى الرئيسي..." : "Office 305, Main Building..."}
+          placeholder={type === "virtual" ? "https://..." : ""}
         />
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <Button type="submit" className="w-full h-11" disabled={schedule.isPending}>
-        {schedule.isPending
-          ? isRTL ? "جاري الجدولة..." : "Scheduling..."
-          : isRTL ? "جدولة الجلسة" : "Schedule Session"}
+        {schedule.isPending ? tCommon("loading") : t("scheduleAction")}
       </Button>
     </form>
   );

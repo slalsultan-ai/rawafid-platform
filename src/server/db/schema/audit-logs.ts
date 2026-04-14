@@ -1,9 +1,10 @@
 import { pgTable, text, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { tenants } from "./tenants";
 import { users } from "./users";
+import { nanoid } from "nanoid";
 
 export const auditLogs = pgTable("audit_logs", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
   tenantId: text("tenant_id").notNull().references(() => tenants.id),
   userId: text("user_id").references(() => users.id),
   action: text("action").notNull(),

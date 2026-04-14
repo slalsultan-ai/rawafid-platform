@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { trpc } from "@/lib/trpc/client";
 import { Button } from "@/components/ui/button";
 import { Lock, Globe, StickyNote, Trash2 } from "lucide-react";
@@ -18,10 +19,12 @@ interface Props {
   sessionId: string;
   initialNotes: Note[];
   currentUserId: string;
-  isRTL: boolean;
 }
 
-export function NotesClient({ sessionId, initialNotes, currentUserId, isRTL }: Props) {
+export function NotesClient({ sessionId, initialNotes, currentUserId }: Props) {
+  const t = useTranslations("session");
+  const tCommon = useTranslations("common");
+
   const [notes, setNotes] = useState(initialNotes);
   const [content, setContent] = useState("");
   const [isPrivate, setIsPrivate] = useState(true);
@@ -50,7 +53,7 @@ export function NotesClient({ sessionId, initialNotes, currentUserId, isRTL }: P
       {notes.length === 0 && (
         <div className="flex flex-col items-center gap-2 py-6 text-slate-400">
           <StickyNote className="w-8 h-8" />
-          <p className="text-sm">{isRTL ? "لا توجد ملاحظات بعد" : "No notes yet"}</p>
+          <p className="text-sm">{tCommon("noResults")}</p>
         </div>
       )}
 
@@ -65,9 +68,11 @@ export function NotesClient({ sessionId, initialNotes, currentUserId, isRTL }: P
           )}
         >
           <div className="flex items-start gap-2">
-            {note.isPrivate
-              ? <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
-              : <Globe className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />}
+            {note.isPrivate ? (
+              <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+            ) : (
+              <Globe className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+            )}
             <p className="flex-1">{note.content}</p>
             {note.authorId === currentUserId && (
               <button
@@ -79,26 +84,19 @@ export function NotesClient({ sessionId, initialNotes, currentUserId, isRTL }: P
               </button>
             )}
           </div>
-          <p className="text-xs text-slate-400 mt-1 mr-5">
-            {note.isPrivate
-              ? isRTL ? "خاصة" : "Private"
-              : isRTL ? "مشتركة" : "Shared"}
-          </p>
         </div>
       ))}
 
-      {/* Add note form */}
       <div className="pt-2 space-y-2">
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder={isRTL ? "اكتب ملاحظتك هنا..." : "Write your note here..."}
+          placeholder={t("notesPlaceholder")}
           rows={3}
           className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
           disabled={addNote.isPending}
         />
         <div className="flex items-center justify-between gap-3">
-          {/* Privacy toggle */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsPrivate(true)}
@@ -110,7 +108,7 @@ export function NotesClient({ sessionId, initialNotes, currentUserId, isRTL }: P
               )}
             >
               <Lock className="w-3 h-3" />
-              {isRTL ? "خاصة" : "Private"}
+              {t("isPrivate")}
             </button>
             <button
               onClick={() => setIsPrivate(false)}
@@ -122,15 +120,11 @@ export function NotesClient({ sessionId, initialNotes, currentUserId, isRTL }: P
               )}
             >
               <Globe className="w-3 h-3" />
-              {isRTL ? "مشتركة" : "Shared"}
+              {tCommon("view")}
             </button>
           </div>
-          <Button
-            size="sm"
-            onClick={handleAdd}
-            disabled={!content.trim() || addNote.isPending}
-          >
-            {isRTL ? "حفظ الملاحظة" : "Save Note"}
+          <Button size="sm" onClick={handleAdd} disabled={!content.trim() || addNote.isPending}>
+            {t("addNote")}
           </Button>
         </div>
       </div>

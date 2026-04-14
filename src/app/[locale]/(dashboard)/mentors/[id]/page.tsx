@@ -1,8 +1,9 @@
 import { auth } from "@/server/auth";
 import { redirect, notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { db } from "@/server/db";
 import { mentorProfiles, users } from "@/server/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,15 +21,28 @@ export default async function MentorProfilePage({
   const session = await auth();
   if (!session?.user) redirect(`/${locale}/login`);
 
+  const currentUser = session.user as { tenantId: string };
+  const t = await getTranslations("mentor");
+  const tCommon = await getTranslations("common");
+  const tProfile = await getTranslations("profile");
+  const tMentee = await getTranslations("mentee");
+
   const isRTL = locale === "ar";
 
-  const result = db ? await db
-    .select({ profile: mentorProfiles, user: users })
-    .from(mentorProfiles)
-    .innerJoin(users, eq(mentorProfiles.userId, users.id))
-    .where(eq(mentorProfiles.userId, id))
-    .limit(1)
-    .then((r) => r[0]) : null;
+  const result = db
+    ? await db
+        .select({ profile: mentorProfiles, user: users })
+        .from(mentorProfiles)
+        .innerJoin(users, eq(mentorProfiles.userId, users.id))
+        .where(
+          and(
+            eq(mentorProfiles.userId, id),
+            eq(mentorProfiles.tenantId, currentUser.tenantId)
+          )
+        )
+        .limit(1)
+        .then((r) => r[0])
+    : null;
 
   if (!result) notFound();
 
@@ -37,27 +51,21 @@ export default async function MentorProfilePage({
   const skills = (profile.skills as Array<{ id: string; nameAr: string; nameEn: string }>) ?? [];
   const availability = (profile.availability as Array<{ day: string; from: string; to: string }>) ?? [];
 
-  const dayLabels: Record<string, { ar: string; en: string }> = {
-    sunday: { ar: "الأحد", en: "Sunday" },
-    monday: { ar: "الاثنين", en: "Monday" },
-    tuesday: { ar: "الثلاثاء", en: "Tuesday" },
-    wednesday: { ar: "الأربعاء", en: "Wednesday" },
-    thursday: { ar: "الخميس", en: "Thursday" },
-    friday: { ar: "الجمعة", en: "Friday" },
-    saturday: { ar: "السبت", en: "Saturday" },
-  };
+  const dayKey = (d: string) => `days.${d as "sunday" | "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday"}` as const;
 
   const getLabel = (item: { nameAr: string; nameEn: string }) =>
     isRTL ? item.nameAr : item.nameEn;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <Link href={`/${locale}/mentors`} className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-teal-600 transition-colors">
+      <Link
+        href={`/${locale}/mentors`}
+        className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-teal-600 transition-colors"
+      >
         <ArrowRight className={`w-4 h-4 ${isRTL ? "" : "rotate-180"}`} />
-        {isRTL ? "العودة للمرشدين" : "Back to Mentors"}
+        {t("backToMentors")}
       </Link>
 
-      {/* Profile Header */}
       <Card>
         <CardContent className="p-7">
           <div className="flex items-start gap-5">
@@ -71,7 +79,7 @@ export default async function MentorProfilePage({
                   {user.nameEn && <p className="text-slate-400 text-sm mt-0.5">{user.nameEn}</p>}
                 </div>
                 <Badge variant={profile.status === "approved" ? "success" : "warning"}>
-                  {isRTL ? (profile.status === "approved" ? "معتمد" : "قيد المراجعة") : (profile.status === "approved" ? "Approved" : "Pending")}
+                  {profile.status === "approved" ? t("approvedMentor") : t("pendingMentor")}
                 </Badge>
               </div>
 
@@ -91,32 +99,39 @@ export default async function MentorProfilePage({
                 {user.yearsOfExperience && (
                   <span className="flex items-center gap-1.5 text-sm text-slate-600">
                     <Star className="w-4 h-4 text-slate-400" />
-                    {user.yearsOfExperience} {isRTL ? "سنة خبرة" : "years exp."}
+                    {user.yearsOfExperience} {tCommon("yearsExp")}
                   </span>
                 )}
                 <span className="flex items-center gap-1.5 text-sm text-slate-600">
                   <Users className="w-4 h-4 text-slate-400" />
-                  {isRTL ? `يقبل حتى ${profile.maxMentees} متدربين` : `Up to ${profile.maxMentees} mentees`}
+                  {t("upTo", { count: profile.maxMentees ?? 3 })}
                 </span>
               </div>
 
               <div className="flex gap-2 mt-3">
-                <Badge variant={profile.sessionPreference === "virtual" ? "default" : profile.sessionPreference === "in_person" ? "secondary" : "outline"}>
+                <Badge
+                  variant={
+                    profile.sessionPreference === "virtual"
+                      ? "default"
+                      : profile.sessionPreference === "in_person"
+                      ? "secondary"
+                      : "outline"
+                  }
+                >
                   {profile.sessionPreference === "virtual"
-                    ? isRTL ? "جلسات افتراضية" : "Virtual Sessions"
+                    ? t("virtualSessions")
                     : profile.sessionPreference === "in_person"
-                    ? isRTL ? "جلسات حضورية" : "In-Person Sessions"
-                    : isRTL ? "افتراضي وحضوري" : "Both"}
+                    ? t("inPersonSessions")
+                    : t("bothSessions")}
                 </Badge>
               </div>
             </div>
           </div>
 
-          {/* Motivation */}
           {profile.motivation && (
             <div className="mt-5 pt-5 border-t border-slate-100">
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                {isRTL ? "دافع الإرشاد" : "Mentoring Motivation"}
+                {tProfile("motivation")}
               </p>
               <p className="text-slate-700 leading-relaxed">{profile.motivation}</p>
             </div>
@@ -124,13 +139,10 @@ export default async function MentorProfilePage({
         </CardContent>
       </Card>
 
-      {/* Areas of Expertise */}
       {areas.length > 0 && (
         <Card>
           <CardContent className="p-6">
-            <p className="text-sm font-semibold text-slate-700 mb-4">
-              {isRTL ? "مجالات الخبرة" : "Areas of Expertise"}
-            </p>
+            <p className="text-sm font-semibold text-slate-700 mb-4">{tProfile("expertise")}</p>
             <div className="flex flex-wrap gap-2">
               {areas.map((area) => (
                 <Badge key={area.id} variant="default" className="px-3 py-1 text-sm">
@@ -142,13 +154,10 @@ export default async function MentorProfilePage({
         </Card>
       )}
 
-      {/* Skills */}
       {skills.length > 0 && (
         <Card>
           <CardContent className="p-6">
-            <p className="text-sm font-semibold text-slate-700 mb-4">
-              {isRTL ? "المهارات" : "Skills"}
-            </p>
+            <p className="text-sm font-semibold text-slate-700 mb-4">{tProfile("skills")}</p>
             <div className="flex flex-wrap gap-2">
               {skills.map((skill) => (
                 <span
@@ -163,18 +172,18 @@ export default async function MentorProfilePage({
         </Card>
       )}
 
-      {/* Availability */}
       {availability.length > 0 && (
         <Card>
           <CardContent className="p-6">
-            <p className="text-sm font-semibold text-slate-700 mb-4">
-              {isRTL ? "أوقات التوفر" : "Availability"}
-            </p>
+            <p className="text-sm font-semibold text-slate-700 mb-4">{tProfile("availability")}</p>
             <div className="flex flex-wrap gap-2">
               {availability.map((slot, i) => (
-                <span key={i} className="flex items-center gap-1.5 text-sm bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg text-slate-700">
+                <span
+                  key={i}
+                  className="flex items-center gap-1.5 text-sm bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg text-slate-700"
+                >
                   <Clock className="w-3.5 h-3.5 text-slate-400" />
-                  {isRTL ? dayLabels[slot.day]?.ar : dayLabels[slot.day]?.en} — {slot.from} إلى {slot.to}
+                  {t(dayKey(slot.day))} — {slot.from} → {slot.to}
                 </span>
               ))}
             </div>
@@ -182,12 +191,9 @@ export default async function MentorProfilePage({
         </Card>
       )}
 
-      {/* CTA */}
       <div className="flex gap-3">
         <Link href={`/${locale}/mentoring/request`} className="flex-1">
-          <Button className="w-full h-12 text-base gap-2">
-            {isRTL ? "طلب إرشاد من هذا المرشد" : "Request Mentoring from This Mentor"}
-          </Button>
+          <Button className="w-full h-12 text-base gap-2">{tMentee("requestMentoring")}</Button>
         </Link>
       </div>
     </div>

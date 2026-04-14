@@ -1,6 +1,7 @@
 import { pgTable, text, timestamp, boolean, pgEnum } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { tenants } from "./tenants";
+import { nanoid } from "nanoid";
 
 export const notificationTypeEnum = pgEnum("notification_type", [
   "mentor_registration_pending",
@@ -18,7 +19,7 @@ export const notificationTypeEnum = pgEnum("notification_type", [
 ]);
 
 export const notifications = pgTable("notifications", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
   tenantId: text("tenant_id").notNull().references(() => tenants.id),
   userId: text("user_id").notNull().references(() => users.id),
   type: notificationTypeEnum("notification_type").notNull(),

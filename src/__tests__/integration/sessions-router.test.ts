@@ -1,10 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { TRPCError } from "@trpc/server";
 import { sessionsRouter } from "@/server/api/routers/sessions";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/** Create a Drizzle-like chainable mock that resolves with `data` at the end */
 function dbChain<T>(data: T) {
   const make = (): Record<string, unknown> => {
     const proxy: Record<string, unknown> = {
@@ -35,9 +32,11 @@ const mockMatch = {
   status: "active",
 };
 
-function makeCtx(userId = MENTOR_USER_ID, mockDb?: Record<string, unknown>) {
+type Ctx = Parameters<typeof sessionsRouter.createCaller>[0];
+
+function makeCtx(userId = MENTOR_USER_ID, mockDb?: Record<string, unknown> | null): Ctx {
   return {
-    db: mockDb ?? {},
+    db: (mockDb ?? {}) as never,
     session: {
       user: {
         id: userId,
@@ -46,7 +45,7 @@ function makeCtx(userId = MENTOR_USER_ID, mockDb?: Record<string, unknown>) {
         role: "mentor",
         tenantId: TENANT_ID,
       },
-    },
+    } as never,
     user: {
       id: userId,
       name: "Test User",
@@ -55,10 +54,8 @@ function makeCtx(userId = MENTOR_USER_ID, mockDb?: Record<string, unknown>) {
       tenantId: TENANT_ID,
     },
     headers: new Headers(),
-  };
+  } as Ctx;
 }
-
-// ─── schedule ─────────────────────────────────────────────────────────────────
 
 describe("sessionsRouter.schedule", () => {
   it("creates a session when user is part of the match", async () => {
@@ -72,7 +69,7 @@ describe("sessionsRouter.schedule", () => {
       }),
     };
 
-    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, mockDb as never));
+    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, mockDb));
 
     const result = await caller.schedule({
       matchId: MATCH_ID,
@@ -86,11 +83,11 @@ describe("sessionsRouter.schedule", () => {
 
   it("throws NOT_FOUND when match does not exist", async () => {
     const mockDb = {
-      select: () => dbChain([]), // empty result
+      select: () => dbChain([]),
       insert: vi.fn(),
     };
 
-    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, mockDb as never));
+    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, mockDb));
 
     await expect(
       caller.schedule({
@@ -109,7 +106,7 @@ describe("sessionsRouter.schedule", () => {
       insert: vi.fn(),
     };
 
-    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, mockDb as never));
+    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, mockDb));
 
     await expect(
       caller.schedule({
@@ -122,7 +119,7 @@ describe("sessionsRouter.schedule", () => {
   });
 
   it("throws INTERNAL_SERVER_ERROR when db is null", async () => {
-    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, null as never));
+    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, null));
 
     await expect(
       caller.schedule({
@@ -134,8 +131,6 @@ describe("sessionsRouter.schedule", () => {
     ).rejects.toThrow(TRPCError);
   });
 });
-
-// ─── addAgendaItem ────────────────────────────────────────────────────────────
 
 describe("sessionsRouter.addAgendaItem", () => {
   const mockSessionRow = { mentorId: MENTOR_USER_ID, menteeId: MENTEE_USER_ID };
@@ -151,7 +146,7 @@ describe("sessionsRouter.addAgendaItem", () => {
       }),
     };
 
-    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, mockDb as never));
+    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, mockDb));
     const result = await caller.addAgendaItem({ sessionId: SESSION_ID, content: "Review progress" });
 
     expect(result).toMatchObject({ content: "Review progress" });
@@ -162,7 +157,7 @@ describe("sessionsRouter.addAgendaItem", () => {
       select: () => dbChain([]),
     };
 
-    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, mockDb as never));
+    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, mockDb));
 
     await expect(
       caller.addAgendaItem({ sessionId: "bad-session", content: "anything" })
@@ -175,15 +170,13 @@ describe("sessionsRouter.addAgendaItem", () => {
       select: () => dbChain([foreignSession]),
     };
 
-    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, mockDb as never));
+    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, mockDb));
 
     await expect(
       caller.addAgendaItem({ sessionId: SESSION_ID, content: "anything" })
     ).rejects.toThrow(TRPCError);
   });
 });
-
-// ─── updateStatus ─────────────────────────────────────────────────────────────
 
 describe("sessionsRouter.updateStatus", () => {
   const mockSessionRow = { mentorId: MENTOR_USER_ID, menteeId: MENTEE_USER_ID };
@@ -198,7 +191,7 @@ describe("sessionsRouter.updateStatus", () => {
       }),
     };
 
-    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, mockDb as never));
+    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, mockDb));
     const result = await caller.updateStatus({ sessionId: SESSION_ID, status: "completed" });
 
     expect(result).toEqual({ success: true });
@@ -210,15 +203,13 @@ describe("sessionsRouter.updateStatus", () => {
       select: () => dbChain([foreignSession]),
     };
 
-    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, mockDb as never));
+    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, mockDb));
 
     await expect(
       caller.updateStatus({ sessionId: SESSION_ID, status: "cancelled" })
     ).rejects.toThrow(TRPCError);
   });
 });
-
-// ─── saveSummary ──────────────────────────────────────────────────────────────
 
 describe("sessionsRouter.saveSummary", () => {
   const mockSessionRow = { mentorId: MENTOR_USER_ID, menteeId: MENTEE_USER_ID };
@@ -231,22 +222,20 @@ describe("sessionsRouter.saveSummary", () => {
   };
 
   it("creates a new summary when none exists", async () => {
+    let callCount = 0;
     const mockDb = {
-      select: () => dbChain([mockSessionRow]),
+      select: () => {
+        callCount++;
+        return dbChain(callCount === 1 ? [mockSessionRow] : []);
+      },
       insert: () => ({
         values: () => ({
           returning: () => Promise.resolve([newSummary]),
         }),
       }),
     };
-    // Second select (for existing summary check) returns empty
-    let callCount = 0;
-    mockDb.select = () => {
-      callCount++;
-      return dbChain(callCount === 1 ? [mockSessionRow] : []) as never;
-    };
 
-    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, mockDb as never));
+    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, mockDb));
     const result = await caller.saveSummary({
       sessionId: SESSION_ID,
       discussedPoints: "Discussed goals",
@@ -264,7 +253,7 @@ describe("sessionsRouter.saveSummary", () => {
     const mockDb = {
       select: () => {
         callCount++;
-        return dbChain(callCount === 1 ? [mockSessionRow] : [existingSummary]) as never;
+        return dbChain(callCount === 1 ? [mockSessionRow] : [existingSummary]);
       },
       update: () => ({
         set: () => ({
@@ -275,7 +264,7 @@ describe("sessionsRouter.saveSummary", () => {
       }),
     };
 
-    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, mockDb as never));
+    const caller = sessionsRouter.createCaller(makeCtx(MENTOR_USER_ID, mockDb));
     const result = await caller.saveSummary({
       sessionId: SESSION_ID,
       discussedPoints: "Updated",

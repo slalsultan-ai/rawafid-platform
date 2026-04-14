@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { trpc } from "@/lib/trpc/client";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
@@ -14,10 +15,12 @@ interface Summary {
 interface Props {
   sessionId: string;
   initialSummary: Summary | null;
-  isRTL: boolean;
 }
 
-export function SummaryClient({ sessionId, initialSummary, isRTL }: Props) {
+export function SummaryClient({ sessionId, initialSummary }: Props) {
+  const t = useTranslations("session");
+  const tCommon = useTranslations("common");
+
   const [discussedPoints, setDiscussedPoints] = useState(initialSummary?.discussedPoints ?? "");
   const [decisions, setDecisions] = useState(initialSummary?.decisions ?? "");
   const [actionItems, setActionItems] = useState(initialSummary?.actionItems ?? "");
@@ -41,12 +44,11 @@ export function SummaryClient({ sessionId, initialSummary, isRTL }: Props) {
     <div className="space-y-5">
       <div className="space-y-1.5">
         <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-          {isRTL ? "النقاط التي تمت مناقشتها" : "Discussed Points"}
+          {t("discussedPoints")}
         </label>
         <textarea
           rows={3}
           className={textareaClass}
-          placeholder={isRTL ? "ما الموضوعات التي تمت مناقشتها..." : "Topics discussed in this session..."}
           value={discussedPoints}
           onChange={(e) => setDiscussedPoints(e.target.value)}
           disabled={save.isPending}
@@ -55,12 +57,11 @@ export function SummaryClient({ sessionId, initialSummary, isRTL }: Props) {
 
       <div className="space-y-1.5">
         <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-          {isRTL ? "القرارات والتوصيات" : "Decisions & Recommendations"}
+          {t("decisions")}
         </label>
         <textarea
           rows={3}
           className={textareaClass}
-          placeholder={isRTL ? "ما القرارات أو التوصيات التي خرجتم بها..." : "Key decisions or recommendations..."}
           value={decisions}
           onChange={(e) => setDecisions(e.target.value)}
           disabled={save.isPending}
@@ -69,12 +70,11 @@ export function SummaryClient({ sessionId, initialSummary, isRTL }: Props) {
 
       <div className="space-y-1.5">
         <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-          {isRTL ? "بنود العمل (Action Items)" : "Action Items"}
+          {t("actionItems")}
         </label>
         <textarea
           rows={3}
           className={textareaClass}
-          placeholder={isRTL ? "ما الخطوات العملية التي سيتخذها كل طرف..." : "Next steps and tasks for each party..."}
           value={actionItems}
           onChange={(e) => setActionItems(e.target.value)}
           disabled={save.isPending}
@@ -83,12 +83,12 @@ export function SummaryClient({ sessionId, initialSummary, isRTL }: Props) {
 
       <div className="flex items-center gap-3">
         <Button onClick={handleSave} disabled={save.isPending} className="gap-2">
-          {isRTL ? "حفظ الملخص" : "Save Summary"}
+          {t("saveSummary")}
         </Button>
         {saved && (
           <span className="flex items-center gap-1.5 text-sm text-teal-600">
             <CheckCircle2 className="w-4 h-4" />
-            {isRTL ? "تم الحفظ" : "Saved"}
+            {tCommon("success")}
           </span>
         )}
       </div>

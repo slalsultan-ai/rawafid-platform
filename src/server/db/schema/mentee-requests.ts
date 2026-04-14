@@ -2,11 +2,12 @@ import { pgTable, text, timestamp, jsonb, pgEnum } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { tenants } from "./tenants";
 import { sessionPreferenceEnum } from "./mentor-profiles";
+import { nanoid } from "nanoid";
 
 export const requestStatusEnum = pgEnum("request_status", ["open", "matched", "cancelled"]);
 
 export const menteeRequests = pgTable("mentee_requests", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
   userId: text("user_id").notNull().references(() => users.id),
   tenantId: text("tenant_id").notNull().references(() => tenants.id),
   desiredArea: text("desired_area").notNull(),

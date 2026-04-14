@@ -209,7 +209,7 @@ export default function LandingPage() {
             <div className="flex items-center gap-1 mb-2">
               {[1,2,3,4,5].map(i => <Star key={i} className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />)}
             </div>
-            <div className="text-xs text-slate-700 leading-relaxed">"أفضل استثمار في مسيرتي المهنية"</div>
+            <div className="text-xs text-slate-700 leading-relaxed">«أفضل استثمار في مسيرتي المهنية»</div>
             <div className="text-[10px] text-slate-400 mt-1">— متدرب في الهيئة</div>
           </div>
         </div>
@@ -392,7 +392,7 @@ export default function LandingPage() {
                     <Star key={j} className="w-4 h-4 text-amber-400 fill-amber-400" />
                   ))}
                 </div>
-                <p className="text-slate-700 leading-relaxed mb-6 text-sm">"{t.text}"</p>
+                <p className="text-slate-700 leading-relaxed mb-6 text-sm">«{t.text}»</p>
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${t.color} flex items-center justify-center text-white font-bold`}>
                     {t.avatar}
@@ -442,7 +442,7 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="bg-white/5 rounded-2xl border border-white/10 p-6 backdrop-blur-sm">
-              <div className="text-white/40 text-xs mb-4 font-mono">// نتائج المطابقة</div>
+              <div className="text-white/40 text-xs mb-4 font-mono">{"// نتائج المطابقة"}</div>
               {[
                 { name: "م. خالد العتيبي", area: "التحول الرقمي", score: 94, active: true },
                 { name: "أ. فهد الدوسري", area: "التخطيط الاستراتيجي", score: 87 },

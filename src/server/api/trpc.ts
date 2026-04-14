@@ -2,7 +2,6 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { auth } from "@/server/auth";
 import { db } from "@/server/db";
-import { z } from "zod";
 
 export const createTRPCContext = async (opts: { headers: Headers }) => {
   const session = await auth();
@@ -18,9 +17,15 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
 });
 
 export const createTRPCRouter = t.router;
-export const publicProcedure = t.procedure;
 
-export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
+export const publicProcedure = t.procedure.use(({ ctx, next }) => {
+  if (!ctx.db) {
+    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database is not configured" });
+  }
+  return next({ ctx: { ...ctx, db: ctx.db } });
+});
+
+export const protectedProcedure = publicProcedure.use(({ ctx, next }) => {
   if (!ctx.session?.user) {
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }
