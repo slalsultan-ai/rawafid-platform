@@ -27,7 +27,9 @@ export default async function DashboardLayout({
   };
 
   const isRTL = locale === "ar";
-  const isDev = process.env.NODE_ENV !== "production";
+  const showUserSwitcher =
+    process.env.NODE_ENV !== "production" ||
+    process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -36,7 +38,13 @@ export default async function DashboardLayout({
         <Header locale={locale} userName={user.name ?? user.email} userRole={user.role} />
         <main className="flex-1 p-6">{children}</main>
       </div>
-      {isDev && ["org_admin", "super_admin"].includes(user.role) && <UserSwitcher />}
+      {showUserSwitcher && (
+        <UserSwitcher
+          currentEmail={user.email}
+          currentName={user.name ?? user.email}
+          currentRole={user.role}
+        />
+      )}
     </div>
   );
 }
