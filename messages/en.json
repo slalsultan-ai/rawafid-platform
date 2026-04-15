@@ -296,6 +296,7 @@
     "topMentors": "Most Requested Mentors",
     "responseHours": "Average Response Hours",
     "exportCsv": "Export CSV",
+    "exportExcel": "Download Excel Report",
     "settingsTitle": "Organization Settings",
     "allowSameDept": "Allow matching within same department",
     "maxMenteesGlobal": "Default max mentees per mentor",

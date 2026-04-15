@@ -11,6 +11,8 @@ import {
 import { eq, and, count, avg } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { logAudit } from "@/server/services/audit";
+import { buildTenantReport } from "@/server/services/excel-report";
+import { TRPCError } from "@trpc/server";
 
 export const adminRouter = createTRPCRouter({
   getStats: adminProcedure.query(async ({ ctx }) => {
@@ -217,6 +219,33 @@ export const adminRouter = createTRPCRouter({
       .limit(1)
       .then((r) => r[0]);
     return t?.settings ?? {};
+  }),
+
+  exportReport: adminProcedure.mutation(async ({ ctx }) => {
+    try {
+      const { buffer, filename } = await buildTenantReport(ctx.db, ctx.user.tenantId);
+
+      await logAudit({
+        tenantId: ctx.user.tenantId,
+        userId: ctx.user.id,
+        action: "report.export",
+        entityType: "report",
+        entityId: filename,
+        details: { format: "xlsx", bytes: buffer.byteLength },
+      });
+
+      return {
+        filename,
+        base64: buffer.toString("base64"),
+        mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      };
+    } catch (err) {
+      console.error("[exportReport] failed", err);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to build report",
+      });
+    }
   }),
 
 });

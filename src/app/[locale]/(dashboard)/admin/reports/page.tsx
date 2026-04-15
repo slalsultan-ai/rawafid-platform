@@ -14,6 +14,7 @@ import {
 import { eq, and, count, avg, sql, desc } from "drizzle-orm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatsCard } from "@/components/admin/stats-card";
+import { ExportReportButton } from "@/components/admin/export-report-button";
 import {
   Users,
   UserCheck,
@@ -110,9 +111,12 @@ export default async function AdminReportsPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">{t("reports")}</h1>
-        <p className="text-slate-500 mt-1">{t("kpiTitle")}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">{t("reports")}</h1>
+          <p className="text-slate-500 mt-1">{t("kpiTitle")}</p>
+        </div>
+        <ExportReportButton label={t("exportExcel")} />
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

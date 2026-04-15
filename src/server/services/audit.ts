@@ -13,7 +13,8 @@ export type AuditAction =
   | "user.update_status"
   | "review.create"
   | "plan.create"
-  | "goal.update";
+  | "goal.update"
+  | "report.export";
 
 export interface AuditEntry {
   tenantId: string;
