@@ -550,9 +550,9 @@ async function main() {
   await db.insert(schema.users).values({
     id: adminId,
     tenantId: TENANT_ID,
-    email: "admin@goid.gov.sa",
-    name: "مسؤول الهيئة",
-    nameEn: "GOID Admin",
+    email: "admin@rawafid.pro",
+    name: "مسؤول روافد",
+    nameEn: "Rawafid Admin",
     role: "org_admin",
     department: "الإدارة العامة",
     jobTitle: "مسؤول التدريب والتطوير",
@@ -834,7 +834,7 @@ async function main() {
   console.log(`
   📊 Created:
   - 1 Tenant: الهيئة العامة للتطوير المؤسسي (slug: goid)
-  - 1 Admin: admin@goid.gov.sa (password: Rawafid@2024)
+  - 1 Admin: admin@rawafid.pro (password: Rawafid@2024)
   - 20 Mentors (all approved)
   - 30 Mentees (with open requests)
   - 50 Employees

@@ -19,7 +19,7 @@ const TEST_USERS: TestGroup[] = [
     role: "org_admin",
     roleLabel: "مسؤول",
     color: "bg-violet-500",
-    users: [{ name: "مسؤول الهيئة", email: "admin@goid.gov.sa" }],
+    users: [{ name: "مسؤول روافد", email: "admin@rawafid.pro" }],
   },
   {
     role: "mentor",

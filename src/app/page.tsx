@@ -110,7 +110,7 @@ export default function LandingPage() {
 
           {/* شريط الثقة */}
           <div className="flex items-center justify-center gap-6 mt-12 text-sm text-slate-400">
-            {["بدون بطاقة ائتمان", "إعداد في 5 دقائق", "دعم عربي كامل"].map((t, i) => (
+            {["إعداد في 5 دقائق", "دعم عربي كامل"].map((t, i) => (
               <span key={i} className="flex items-center gap-1.5">
                 <CheckCircle className="w-4 h-4 text-amber-500" />
                 {t}
@@ -353,60 +353,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ====== TESTIMONIALS ====== */}
-      <section className="py-24 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-14">
-            <h2 className="text-4xl font-black text-[#0f2837]">ماذا يقول المستخدمون؟</h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                name: "د. نورة الشمري",
-                role: "مديرة تطوير المواهب — مرشدة",
-                text: "روافد غيّر طريقة عملي كمرشدة. أستطيع الآن إدارة 5 متدربين بكفاءة عالية، مع رؤية واضحة لتقدم كل واحد منهم.",
-                rating: 5,
-                avatar: "ن",
-                color: "from-[#0f2837] to-[#1a4a66]",
-              },
-              {
-                name: "م. خالد العتيبي",
-                role: "مدير التحول الرقمي — مرشد",
-                text: "الخوارزمية ذكية بشكل مدهش. كل المتدربين الذين طابقتهم المنصة كان بيننا توافق حقيقي منذ الجلسة الأولى.",
-                rating: 5,
-                avatar: "خ",
-                color: "from-amber-500 to-amber-600",
-              },
-              {
-                name: "أ. بدر العسيري",
-                role: "محلل استراتيجي — متدرب",
-                text: "في 3 أشهر مع مرشدي، حققت ما لم أحققه في 3 سنوات من التعلم الذاتي. المنصة تنظّم الرحلة بطريقة محترفة جداً.",
-                rating: 5,
-                avatar: "ب",
-                color: "from-violet-400 to-violet-600",
-              },
-            ].map((t, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-slate-100 p-7 shadow-sm hover:shadow-lg transition-shadow">
-                <div className="flex items-center gap-1 mb-5">
-                  {Array.from({ length: t.rating }).map((_, j) => (
-                    <Star key={j} className="w-4 h-4 text-amber-400 fill-amber-400" />
-                  ))}
-                </div>
-                <p className="text-slate-700 leading-relaxed mb-6 text-sm">«{t.text}»</p>
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${t.color} flex items-center justify-center text-white font-bold`}>
-                    {t.avatar}
-                  </div>
-                  <div>
-                    <div className="font-semibold text-[#0f2837] text-sm">{t.name}</div>
-                    <div className="text-xs text-slate-400">{t.role}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ====== MATCHING HIGHLIGHT ====== */}
       <section className="py-20 px-6 bg-[#0f2837] overflow-hidden relative">
@@ -502,9 +448,6 @@ export default function LandingPage() {
               دخول الإدارة
             </Link>
           </div>
-          <p className="text-slate-400 text-sm mt-6">
-            حساب Admin التجريبي: <span className="font-mono text-slate-600">admin@goid.gov.sa</span> / <span className="font-mono text-slate-600">Rawafid@2024</span>
-          </p>
         </div>
       </section>
 
@@ -520,9 +463,6 @@ export default function LandingPage() {
                 <div className="text-white font-bold">روافد</div>
                 <div className="text-xs">منصة الإرشاد المهني الذكي</div>
               </div>
-            </div>
-            <div className="text-sm text-center">
-              مبني بـ Next.js 15 · Neon · tRPC · TypeScript
             </div>
             <div className="text-sm">
               © 2026 روافد — جميع الحقوق محفوظة
