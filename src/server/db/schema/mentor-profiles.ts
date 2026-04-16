@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, jsonb, integer, pgEnum, real, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb, integer, pgEnum, real, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { tenants } from "./tenants";
 import { nanoid } from "nanoid";
@@ -30,6 +30,7 @@ export const mentorProfiles = pgTable(
   },
   (t) => ({
     userIdx: uniqueIndex("mentor_profiles_user_idx").on(t.userId),
+    tenantStatusIdx: index("mentor_profiles_tenant_status_idx").on(t.tenantId, t.status),
   })
 );
 

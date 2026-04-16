@@ -7,7 +7,7 @@ import {
   goalProgressNotes,
   matches,
 } from "@/server/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { logAudit } from "@/server/services/audit";
 
@@ -89,15 +89,16 @@ await assertMatchAccess(ctx.db, input.matchId, ctx.user.id, ctx.user.tenantId);
         .from(developmentGoals)
         .where(eq(developmentGoals.planId, plan.id));
 
-      const milestonesByGoal: Record<string, Awaited<ReturnType<typeof loadMilestones>>> = {};
-      async function loadMilestones(goalId: string) {
-        return ctx.db
-          .select()
-          .from(goalMilestones)
-          .where(eq(goalMilestones.goalId, goalId));
-      }
-      for (const g of goals) {
-        milestonesByGoal[g.id] = await loadMilestones(g.id);
+      const milestonesByGoal: Record<string, typeof allMilestones> = {};
+      const goalIds = goals.map((g) => g.id);
+      const allMilestones = goalIds.length > 0
+        ? await ctx.db
+            .select()
+            .from(goalMilestones)
+            .where(inArray(goalMilestones.goalId, goalIds))
+        : [];
+      for (const ms of allMilestones) {
+        (milestonesByGoal[ms.goalId] ??= []).push(ms);
       }
 
       return { plan, goals, milestones: milestonesByGoal };

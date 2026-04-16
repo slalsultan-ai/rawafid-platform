@@ -36,41 +36,59 @@ export const matchingRouter = createTRPCRouter({
       if (!request) throw new TRPCError({ code: "NOT_FOUND" });
       if (request.userId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
 
-      const menteeUser = await ctx.db
-        .select()
-        .from(users)
-        .where(eq(users.id, request.userId))
-        .limit(1)
-        .then((r) => r[0]);
-
-      const tenant = await ctx.db
-        .select()
-        .from(tenants)
-        .where(eq(tenants.id, ctx.user.tenantId))
-        .limit(1)
-        .then((r) => r[0]);
+      const [menteeUser, tenant] = await Promise.all([
+        ctx.db
+          .select()
+          .from(users)
+          .where(eq(users.id, request.userId))
+          .limit(1)
+          .then((r) => r[0]),
+        ctx.db
+          .select()
+          .from(tenants)
+          .where(eq(tenants.id, ctx.user.tenantId))
+          .limit(1)
+          .then((r) => r[0]),
+      ]);
 
       const allowSameDept = tenant?.settings?.allowSameDepartmentMatch ?? true;
       const weights = tenant?.settings?.matchingWeights ?? DEFAULT_WEIGHTS;
 
-      const approvedMentors = await ctx.db
-        .select({ profile: mentorProfiles, user: users })
-        .from(mentorProfiles)
-        .innerJoin(users, eq(mentorProfiles.userId, users.id))
-        .where(
-          and(
-            eq(mentorProfiles.tenantId, ctx.user.tenantId),
-            eq(mentorProfiles.status, "approved")
+      const [approvedMentors, activeCounts] = await Promise.all([
+        ctx.db
+          .select({
+            profile: mentorProfiles,
+            user: {
+              id: users.id,
+              name: users.name,
+              nameEn: users.nameEn,
+              email: users.email,
+              department: users.department,
+              departmentEn: users.departmentEn,
+              jobTitle: users.jobTitle,
+              jobTitleEn: users.jobTitleEn,
+              yearsOfExperience: users.yearsOfExperience,
+              avatar: users.avatar,
+              role: users.role,
+              status: users.status,
+            },
+          })
+          .from(mentorProfiles)
+          .innerJoin(users, eq(mentorProfiles.userId, users.id))
+          .where(
+            and(
+              eq(mentorProfiles.tenantId, ctx.user.tenantId),
+              eq(mentorProfiles.status, "approved")
+            )
+          ),
+        ctx.db
+          .select({ mentorId: matches.mentorId, count: count() })
+          .from(matches)
+          .where(
+            and(eq(matches.tenantId, ctx.user.tenantId), eq(matches.status, "active"))
           )
-        );
-
-      const activeCounts = await ctx.db
-        .select({ mentorId: matches.mentorId, count: count() })
-        .from(matches)
-        .where(
-          and(eq(matches.tenantId, ctx.user.tenantId), eq(matches.status, "active"))
-        )
-        .groupBy(matches.mentorId);
+          .groupBy(matches.mentorId),
+      ]);
 
       const countMap = new Map(activeCounts.map((c) => [c.mentorId, Number(c.count)]));
 
@@ -102,9 +120,10 @@ export const matchingRouter = createTRPCRouter({
         allowSameDepartment: allowSameDept,
       });
 
+      const mentorMap = new Map(approvedMentors.map((m) => [m.user.id, m]));
       return ranked
         .map((r) => {
-          const mentor = approvedMentors.find((m) => m.user.id === r.mentorUserId);
+          const mentor = mentorMap.get(r.mentorUserId);
           return mentor ? { ...r, mentor } : null;
         })
         .filter((r): r is NonNullable<typeof r> => r !== null);

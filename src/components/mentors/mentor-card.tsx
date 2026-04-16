@@ -4,10 +4,20 @@ import { Button } from "@/components/ui/button";
 import { getInitials, getScoreBgColor, formatScore } from "@/lib/utils";
 import { Star, Briefcase } from "lucide-react";
 import Link from "next/link";
-import type { User, MentorProfile } from "@/server/db/schema";
+import type { MentorProfile } from "@/server/db/schema";
+
+type MentorCardUser = {
+  id: string;
+  name: string;
+  nameEn?: string | null;
+  department?: string | null;
+  jobTitle?: string | null;
+  yearsOfExperience?: number | null;
+  avatar?: string | null;
+};
 
 interface MentorCardProps {
-  user: User;
+  user: MentorCardUser;
   profile: MentorProfile;
   score?: number;
   locale: string;

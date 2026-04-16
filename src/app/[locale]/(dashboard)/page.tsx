@@ -92,7 +92,10 @@ export default async function DashboardPage({
   const incomingRequests =
     db && user.role === "mentor"
       ? await db
-          .select({ match: matches, mentee: users })
+          .select({
+            match: { id: matches.id, status: matches.status },
+            mentee: { name: users.name, department: users.department },
+          })
           .from(matches)
           .innerJoin(users, eq(matches.menteeId, users.id))
           .where(
@@ -108,7 +111,10 @@ export default async function DashboardPage({
   const currentMatch =
     db && (user.role === "mentee" || user.role === "employee")
       ? await db
-          .select({ match: matches, mentor: users })
+          .select({
+            match: { id: matches.id, status: matches.status },
+            mentor: { name: users.name, jobTitle: users.jobTitle },
+          })
           .from(matches)
           .innerJoin(users, eq(matches.mentorId, users.id))
           .where(

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer, boolean, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, integer, boolean, pgEnum, index } from "drizzle-orm/pg-core";
 import { matches } from "./matches";
 import { tenants } from "./tenants";
 import { users } from "./users";
@@ -19,7 +19,10 @@ export const sessions = pgTable("sessions", {
   cancellationReason: text("cancellation_reason"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (t) => ({
+  matchIdx: index("sessions_match_idx").on(t.matchId),
+  tenantStatusIdx: index("sessions_tenant_status_idx").on(t.tenantId, t.status),
+}));
 
 export const sessionAgendaItems = pgTable("session_agenda_items", {
   id: text("id").primaryKey().$defaultFn(() => nanoid()),

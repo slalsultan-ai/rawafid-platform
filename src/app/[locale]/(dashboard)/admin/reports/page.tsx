@@ -11,7 +11,7 @@ import {
   developmentGoals,
   menteeRequests,
 } from "@/server/db/schema";
-import { eq, and, count, avg, sql, desc } from "drizzle-orm";
+import { eq, and, count, avg, sql, desc, inArray } from "drizzle-orm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatsCard } from "@/components/admin/stats-card";
 import { ExportReportButton } from "@/components/admin/export-report-button";
@@ -85,19 +85,19 @@ export default async function AdminReportsPage({
     : [0, 0, 0, 0, 0, 0, 0, [], [], { total: 0, completed: 0 }];
 
   const dbRef = db;
-  const topMentors = dbRef
-    ? await Promise.all(
-        (topMentorsRows as Array<{ mentorId: string; count: number }>).map(async (row) => {
-          const u = await dbRef
-            .select({ id: users.id, name: users.name, jobTitle: users.jobTitle })
-            .from(users)
-            .where(eq(users.id, row.mentorId))
-            .limit(1)
-            .then((r) => r[0]);
-          return { ...u, count: Number(row.count) };
-        })
-      )
+  const mentorRows = topMentorsRows as Array<{ mentorId: string; count: number }>;
+  const mentorIds = mentorRows.map((r) => r.mentorId);
+  const mentorUsers = dbRef && mentorIds.length > 0
+    ? await dbRef
+        .select({ id: users.id, name: users.name, jobTitle: users.jobTitle })
+        .from(users)
+        .where(inArray(users.id, mentorIds))
     : [];
+  const mentorUserMap = new Map(mentorUsers.map((u) => [u.id, u]));
+  const topMentors = mentorRows.map((row) => ({
+    ...mentorUserMap.get(row.mentorId),
+    count: Number(row.count),
+  }));
 
   const goalTotal = Number((goalCompletion as { total: number }).total ?? 0);
   const goalDone = Number((goalCompletion as { completed: number }).completed ?? 0);

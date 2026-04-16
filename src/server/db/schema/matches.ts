@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, real, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, real, pgEnum, index } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { tenants } from "./tenants";
 import { menteeRequests } from "./mentee-requests";
@@ -17,7 +17,11 @@ export const matches = pgTable("matches", {
   rejectionReason: text("rejection_reason"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (t) => ({
+  mentorStatusIdx: index("matches_mentor_status_idx").on(t.mentorId, t.status),
+  menteeStatusIdx: index("matches_mentee_status_idx").on(t.menteeId, t.status),
+  tenantStatusIdx: index("matches_tenant_status_idx").on(t.tenantId, t.status),
+}));
 
 export type Match = typeof matches.$inferSelect;
 export type NewMatch = typeof matches.$inferInsert;

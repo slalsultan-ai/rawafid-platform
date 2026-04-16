@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, pgEnum, index } from "drizzle-orm/pg-core";
 import { matches } from "./matches";
 import { tenants } from "./tenants";
 import { users } from "./users";
@@ -12,7 +12,9 @@ export const developmentPlans = pgTable("development_plans", {
   tenantId: text("tenant_id").notNull().references(() => tenants.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (t) => ({
+  matchTenantIdx: index("development_plans_match_tenant_idx").on(t.matchId, t.tenantId),
+}));
 
 export const developmentGoals = pgTable("development_goals", {
   id: text("id").primaryKey().$defaultFn(() => nanoid()),
@@ -25,7 +27,10 @@ export const developmentGoals = pgTable("development_goals", {
   targetDate: timestamp("target_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (t) => ({
+  planIdx: index("development_goals_plan_idx").on(t.planId),
+  tenantIdx: index("development_goals_tenant_idx").on(t.tenantId),
+}));
 
 export const goalMilestones = pgTable("goal_milestones", {
   id: text("id").primaryKey().$defaultFn(() => nanoid()),
@@ -37,7 +42,9 @@ export const goalMilestones = pgTable("goal_milestones", {
   targetDate: timestamp("target_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (t) => ({
+  goalIdx: index("goal_milestones_goal_idx").on(t.goalId),
+}));
 
 export const goalProgressNotes = pgTable("goal_progress_notes", {
   id: text("id").primaryKey().$defaultFn(() => nanoid()),
@@ -46,7 +53,9 @@ export const goalProgressNotes = pgTable("goal_progress_notes", {
   authorId: text("author_id").notNull().references(() => users.id),
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => ({
+  goalIdx: index("goal_progress_notes_goal_idx").on(t.goalId),
+}));
 
 export type DevelopmentPlan = typeof developmentPlans.$inferSelect;
 export type DevelopmentGoal = typeof developmentGoals.$inferSelect;

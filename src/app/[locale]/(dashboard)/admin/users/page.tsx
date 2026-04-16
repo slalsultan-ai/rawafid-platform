@@ -33,7 +33,18 @@ export default async function AdminUsersPage({
   const tCommon = await getTranslations("common");
 
   const allUsers = db
-    ? await db.select().from(users).where(eq(users.tenantId, currentUser.tenantId))
+    ? await db
+        .select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          department: users.department,
+          jobTitle: users.jobTitle,
+          role: users.role,
+          status: users.status,
+        })
+        .from(users)
+        .where(eq(users.tenantId, currentUser.tenantId))
     : [];
 
   return (

@@ -24,7 +24,23 @@ export default async function MentorsPage({
 
   const mentors = db
     ? await db
-        .select({ profile: mentorProfiles, user: users })
+        .select({
+          profile: mentorProfiles,
+          user: {
+            id: users.id,
+            name: users.name,
+            nameEn: users.nameEn,
+            email: users.email,
+            department: users.department,
+            departmentEn: users.departmentEn,
+            jobTitle: users.jobTitle,
+            jobTitleEn: users.jobTitleEn,
+            yearsOfExperience: users.yearsOfExperience,
+            avatar: users.avatar,
+            role: users.role,
+            status: users.status,
+          },
+        })
         .from(mentorProfiles)
         .innerJoin(users, eq(mentorProfiles.userId, users.id))
         .where(

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, pgEnum, index } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { tenants } from "./tenants";
 import { nanoid } from "nanoid";
@@ -32,6 +32,8 @@ export const notifications = pgTable("notifications", {
   isRead: boolean("is_read").default(false),
   emailSent: boolean("email_sent").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => ({
+  userUnreadIdx: index("notifications_user_unread_idx").on(t.userId, t.tenantId, t.isRead),
+}));
 
 export type Notification = typeof notifications.$inferSelect;

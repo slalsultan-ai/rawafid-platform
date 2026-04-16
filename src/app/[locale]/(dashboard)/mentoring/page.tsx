@@ -49,7 +49,17 @@ export default async function MentoringPage({
 
   const asMentee = db
     ? await db
-        .select({ match: matches, mentor: users })
+        .select({
+          match: {
+            id: matches.id,
+            status: matches.status,
+            matchingScore: matches.matchingScore,
+          },
+          mentor: {
+            name: users.name,
+            jobTitle: users.jobTitle,
+          },
+        })
         .from(matches)
         .innerJoin(users, eq(matches.mentorId, users.id))
         .where(and(eq(matches.menteeId, user.id), eq(matches.tenantId, user.tenantId)))
@@ -57,7 +67,19 @@ export default async function MentoringPage({
 
   const asMentor = db
     ? await db
-        .select({ match: matches, mentee: users, request: menteeRequests })
+        .select({
+          match: {
+            id: matches.id,
+            status: matches.status,
+            matchingScore: matches.matchingScore,
+            requestId: matches.requestId,
+          },
+          mentee: {
+            name: users.name,
+            department: users.department,
+          },
+          request: menteeRequests,
+        })
         .from(matches)
         .innerJoin(users, eq(matches.menteeId, users.id))
         .leftJoin(menteeRequests, eq(matches.requestId, menteeRequests.id))

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, integer, index } from "drizzle-orm/pg-core";
 import { sessions } from "./sessions";
 import { tenants } from "./tenants";
 import { users } from "./users";
@@ -17,6 +17,9 @@ export const sessionReviews = pgTable("session_reviews", {
   ratingCommunication: integer("rating_communication"),
   comments: text("comments"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => ({
+  sessionIdx: index("session_reviews_session_idx").on(t.sessionId),
+  tenantRevieweeIdx: index("session_reviews_tenant_reviewee_idx").on(t.tenantId, t.revieweeId),
+}));
 
 export type SessionReview = typeof sessionReviews.$inferSelect;
